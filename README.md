@@ -16,6 +16,27 @@
 
 ---
 
+## V3.2 系列优化与图片预览
+
+- **两种图片输出**。HTML 按本次占卜数据排版；AI 模式可使用自定义绘图节点。AI 失败时尝试 HTML，两者均失败时发送文本。
+- **五套提示词和参考图**。按占卜类型选用内置参考图，并把它与可编辑提示词、当次占卜数据一起送给绘图节点。
+- **群聊回复**。占卜结果引用触发消息并艾特发起人，图片和文本使用相同方式。
+- **图文帮助**。发送 `占卜帮助` 或 `/占卜 帮助`，直接收到下面这张使用说明。
+
+<a href="assets/help.png"><img src="assets/help.png" alt="赛博占卜命令帮助图" width="360"></a>
+
+### 五套 AI 绘图参考图
+
+以下图片随插件安装，点击可查看大图。图里的签号、卦名等是视觉示例，实际请求使用本次占卜数据。
+
+| 周易六爻 · 玄墨鎏金 | 观音灵签 · 莲华古卷 | 塔罗 · 星辉秘境 |
+| --- | --- | --- |
+| <a href="references/zhouyi.jpg"><img src="references/zhouyi.jpg" alt="周易六爻参考图" width="180"></a> | <a href="references/lingqian.jpg"><img src="references/lingqian.jpg" alt="观音灵签参考图" width="180"></a> | <a href="references/tarot.jpg"><img src="references/tarot.jpg" alt="塔罗参考图" width="180"></a> |
+
+| 奇门遁甲 · 九宫天机 | 每日运势 · 晨曦花笺 |
+| --- | --- |
+| <a href="references/qimen.jpg"><img src="references/qimen.jpg" alt="奇门遁甲参考图" width="180"></a> | <a href="references/daily.jpg"><img src="references/daily.jpg" alt="每日运势参考图" width="180"></a> |
+
 ## 上游与维护
 
 本项目源自 ruoyuxian20-sys（若雨希安）的赛博占卜插件。DumKing 在此仓库维护五主题卡片、绘图 API、参考图、帮助图与群聊回复等功能。感谢上游作者，保留原作者署名及 MIT 许可。[上游仓库](https://github.com/ruoyuxian20-sys/astrbot_plugin_cyber_divination) · [MIT License](LICENSE)
