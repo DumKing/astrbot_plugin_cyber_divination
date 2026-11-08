@@ -4,8 +4,10 @@ from __future__ import annotations
 import asyncio
 import re
 import time
+from collections import OrderedDict
 from datetime import date, datetime
 from pathlib import Path
+from weakref import WeakValueDictionary
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
@@ -27,6 +29,8 @@ _SUB_WORDS = {
     "help", "帮助", "菜单", "usage",
 }
 
+_DAILY_CACHE_MAX_IMAGES = 64
+_DAILY_CACHE_MAX_BYTES = 32 * 1024 * 1024
 _MAX_QUESTION = 120
 _LLM_FAIL_COOLDOWN = 60
 _KEYWORD_REMAINDER = "cyber_divination_keyword_remainder"
@@ -66,6 +70,10 @@ class CyberDivination(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
+        self._daily_images: OrderedDict[tuple[date, str], bytes] = OrderedDict()
+        self._daily_image_locks: WeakValueDictionary[tuple[date, str], asyncio.Lock] = (
+            WeakValueDictionary()
+        )
 
     # ---------- 工具 ----------
 
@@ -202,7 +210,7 @@ class CyberDivination(Star):
             return
         if self._cfg("image_mode", "html") == "ai":
             try:
-                image = await self._generate_ai_card(title, card_data or {}, zhouyi_cast)
+                image = await self._get_ai_image(event, title, card_data or {}, zhouyi_cast)
                 yield event.chain_result([Image.fromBytes(image)])
                 return
             except Exception as exc:
@@ -236,6 +244,31 @@ class CyberDivination(Star):
         except Exception as exc:
             logger.warning(f"cyber_divination HTML 渲染失败，回退纯文本: {type(exc).__name__}")
         yield event.plain_result(body)
+
+    async def _get_ai_image(self, event: AstrMessageEvent, title: str, data: dict, cast) -> bytes:
+        draw = data.get("daily")
+        sender_id = self._sender_id(event) if draw else ""
+        if not sender_id:
+            return await self._generate_ai_card(title, data, cast)
+
+        key = (draw["date"], sender_id)
+        lock = self._daily_image_locks.setdefault(key, asyncio.Lock())
+        async with lock:
+            cached = self._daily_images.get(key)
+            if cached is not None:
+                self._daily_images.move_to_end(key)
+                return cached
+
+            image = await self._generate_ai_card(title, data, cast)
+            self._daily_images[key] = image
+            total = sum(len(card) for card in self._daily_images.values())
+            while (
+                len(self._daily_images) > _DAILY_CACHE_MAX_IMAGES
+                or total > _DAILY_CACHE_MAX_BYTES
+            ):
+                _, evicted = self._daily_images.popitem(last=False)
+                total -= len(evicted)
+            return image
 
     async def _generate_ai_card(self, title: str, card_data: dict, cast) -> bytes:
         from .core.image_api import build_prompt, generate_image

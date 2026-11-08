@@ -2,6 +2,7 @@
 import asyncio
 import importlib.util
 import sys
+from datetime import date
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
@@ -22,6 +23,10 @@ def load_plugin():
             return handler
         return decorate
 
+    class Star:
+        def __init__(self, context):
+            self.context = context
+
     modules = {
         name: package,
         "astrbot": ModuleType("astrbot"),
@@ -34,7 +39,7 @@ def load_plugin():
                 event_message_type=lambda *a: lambda target: target,
             ),
         ),
-        "astrbot.api.star": SimpleNamespace(Context=object, Star=object),
+        "astrbot.api.star": SimpleNamespace(Context=object, Star=Star),
         "astrbot.api.message_components": SimpleNamespace(
             Image=SimpleNamespace(fromBytes=lambda data: ("image", data)),
             Reply=lambda *, id: ("reply", id),
@@ -129,3 +134,34 @@ def test_divination_replies_address_the_original_sender():
     assert asyncio.run(collect()) == [[("reply", "message-123"), ("plain", "占卜原文")]]
     event.message_obj.message_id = None
     assert asyncio.run(collect()) == [[("plain", "占卜原文")]]
+
+
+
+def test_daily_ai_image_cache_reuses_success_by_sender_and_date():
+    plugin = load_plugin()(None, {})
+    generate = AsyncMock(side_effect=[b"first", b"second", b"tomorrow", TimeoutError(), b"retry"])
+    plugin._generate_ai_card = generate
+    alice = SimpleNamespace(get_sender_id=lambda: "alice")
+    bob = SimpleNamespace(get_sender_id=lambda: "bob")
+    today = {"daily": {"date": date(2026, 11, 8)}}
+    tomorrow = {"daily": {"date": date(2026, 11, 9)}}
+    failure = {"daily": {"date": date(2026, 11, 10)}}
+
+    async def fetch(event, draw):
+        return await plugin._get_ai_image(event, "每日运势", draw, None)
+
+    async def verify():
+        assert await asyncio.gather(fetch(alice, today), fetch(alice, today)) == [b"first", b"first"]
+        assert generate.await_count == 1
+        assert await fetch(bob, today) == b"second"
+        assert await fetch(alice, tomorrow) == b"tomorrow"
+        try:
+            await fetch(alice, failure)
+        except TimeoutError:
+            pass
+        else:
+            raise AssertionError("expected generation to fail")
+        assert await fetch(alice, failure) == b"retry"
+        assert generate.await_count == 5
+
+    asyncio.run(verify())
