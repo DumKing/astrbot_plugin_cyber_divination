@@ -22,8 +22,100 @@
     "hint": "建议 1-50"
   },
   "use_image": {
-    "description": "是否使用图文卡片输出。需要 AstrBot 文本转图（T2I）功能可用；渲染失败会自动回退到纯文本。",
+    "description": "使用 OmniDraw 已配置的画图节点生成占卜卡片，失败时发送纯文本。",
     "type": "bool",
     "default": false
+  },
+  "keyword_trigger_enabled": {
+    "description": "启用无前缀关键词触发",
+    "type": "bool",
+    "default": false
+  },
+  "keyword_trigger_mode": {
+    "description": "关键词匹配模式",
+    "type": "string",
+    "options": [
+      "exact",
+      "starts_with",
+      "contains"
+    ],
+    "default": "exact",
+    "hint": "exact 完全匹配；starts_with 开头匹配；contains 包含匹配。后两种会将关键词后面的文字作为问题。"
+  },
+  "keyword_aliases": {
+    "description": "关键词列表",
+    "type": "object",
+    "items": {
+      "zhouyi": {
+        "description": "六爻",
+        "type": "list",
+        "default": [
+          "六爻",
+          "周易",
+          "摇卦"
+        ]
+      },
+      "lingqian": {
+        "description": "灵签",
+        "type": "list",
+        "default": [
+          "求灵签",
+          "观音灵签",
+          "灵签"
+        ]
+      },
+      "tarot": {
+        "description": "塔罗",
+        "type": "list",
+        "default": [
+          "塔罗占卜",
+          "塔罗牌",
+          "塔罗"
+        ]
+      },
+      "qimen": {
+        "description": "奇门",
+        "type": "list",
+        "default": [
+          "奇门遁甲",
+          "奇门"
+        ]
+      },
+      "daily": {
+        "description": "每日运势",
+        "type": "list",
+        "default": [
+          "每日运势",
+          "今日运势"
+        ]
+      },
+      "help": {
+        "description": "帮助",
+        "type": "list",
+        "default": [
+          "占卜帮助"
+        ]
+      }
+    }
+  },
+  "image_style": {
+    "description": "占卜卡片画面风格",
+    "type": "string",
+    "default": "深色背景、细金边框、简洁神秘风"
+  },
+  "image_aspect_ratio": {
+    "description": "卡片比例",
+    "type": "string",
+    "default": "3:4"
+  },
+  "image_size": {
+    "description": "卡片尺寸（留空使用节点默认）",
+    "type": "string",
+    "default": ""
+  },
+  "image_timeout_seconds": {
+    "description": "节点生图超时（秒）",
+    "type": "int",
+    "default": 180
   }
 }
