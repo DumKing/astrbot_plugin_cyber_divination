@@ -1,4 +1,4 @@
-# 🔮 赛博占卜 cyber_divination — 五主题艺术卡片 V3.2.0
+# 🔮 赛博占卜 cyber_divination — 五主题艺术卡片 V3.2.1
 
 > 周易六爻、观音灵签、塔罗牌、奇门遁甲、每日运势 —— 传统占卜体系的赛博娱乐实现。
 
@@ -106,7 +106,7 @@ API 超时、鉴权失败、无效响应或图片下载失败时，用**同一�
 
 1. 设置 `use_image=true`、`image_mode=ai`，填写支持图像输入的模型与鉴权。
 2. 在 `ai_image_reference_endpoint` 填支持上传图片的完整编辑地址，例如 `https://api.example.com/v1/images/edits`。开启后，插件在这个地址发送一张参考图、主题提示词和本次占卜数据。留空时使用原有纯文字绘图地址。
-3. 插件目录中的 `references/` 按主题放一张 JPEG，文件名依次为 `zhouyi.jpg`、`lingqian.jpg`、`tarot.jpg`、`qimen.jpg`、`daily.jpg`。含参考图的安装包已放好五张，源码安装时可自行放入参考图。参考图随请求上传给配置的服务。
+3. 插件目录中的 `references/` 按主题放一张 JPEG，文件名依次为 `zhouyi.jpg`、`lingqian.jpg`、`tarot.jpg`、`qimen.jpg`、`daily.jpg`。GitHub 源码和 ZIP 安装包均自带这五张参考图，安装后可直接使用。参考图随请求上传给配置的服务。
 4. 接口须支持 [Images Edits 的 multipart 请求](https://developers.openai.com/api/reference/resources/images/methods/edit)。上传字段默认 `image[]`，兼容使用单字段的节点可将 `ai_image_reference_field` 改为 `image`。沿用原有模型、API 密钥、尺寸和超时设置。
 
 参考图仅指导版式、字体、配色与装饰，卡片数据以插件本次结果为准。缺少参考图或接口失败时沿用 HTML → 文本回退。出图成功只发送图片。

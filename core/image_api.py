@@ -54,6 +54,7 @@ def build_prompt(style: str, kind: str, title: str, data: dict, cast=None) -> st
             "tarot": {"name": name, "reversed": reversed_, "meaning": meaning},
             "lot": {"number": number, "grade": grade, "poem": poem, "explain": explain},
             "hexagram": draw["cast"].name,
+            "lines_bottom_to_top": draw["cast"].lines,
             "hexagram_interpretation": draw["cast"].jie,
             "advice": daily.grade_advice(grade),
             "lucky_details": daily.lucky_details(draw["date"], data.get("uid", ""), grade),

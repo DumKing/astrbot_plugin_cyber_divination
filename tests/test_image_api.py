@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from PIL import Image
 
 from core import daily, qimen, tarot, zhouyi
-from core.image_api import ImageAPIError, build_prompt, generate_image
+from core.image_api import ImageAPIError, _read_reference, build_prompt, generate_image
 from core.image_styles import DEFAULT_STYLES, resolve_style
 from core.keywords import match_keyword
 
@@ -53,6 +53,8 @@ def test_five_defaults_and_structured_data():
         assert "private-" not in prompt
         payload = json.loads(prompt.split("构图参考数据：", 1)[1].splitlines()[0])
         assert payload[field] == expected
+        if kind == "daily":
+            assert payload["lines_bottom_to_top"] == drawn["cast"].lines
 
 
 class ImageAPITests(unittest.IsolatedAsyncioTestCase):
@@ -174,3 +176,10 @@ class ImageAPITests(unittest.IsolatedAsyncioTestCase):
 def test_prompt_selection_preserves_custom_text():
     assert resolve_style("zhouyi", "") == DEFAULT_STYLES["zhouyi"]
     assert resolve_style("zhouyi", "自定义版式") == "自定义版式"
+
+
+
+def test_all_five_references_are_bundled():
+    directory = Path(__file__).parents[1] / "references"
+    for kind in DEFAULT_STYLES:
+        assert _read_reference(directory / f"{kind}.jpg")
