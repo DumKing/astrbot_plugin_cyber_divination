@@ -219,3 +219,35 @@ def test_image_acknowledgement_is_independent_and_precedes_generation():
         send.assert_awaited_once_with([("reply", "42"), ("plain", "收到，正在生成周易六爻")])
 
     asyncio.run(verify())
+
+
+def test_prefix_question_reaches_ai_image_only_when_enabled():
+    plugin = load_plugin()(None, {"use_image": True, "image_mode": "ai"})
+    extras = {}
+    event = SimpleNamespace(
+        get_message_str=lambda: "六爻 今日财运",
+        is_at_or_wake_command=False,
+        get_extra=extras.get,
+        set_extra=extras.__setitem__,
+        stop_event=Mock(),
+        chain_result=lambda chain: chain,
+    )
+    plugin.config.update(keyword_trigger_enabled=True, keyword_trigger_mode="starts_with")
+    plugin._generate_ai_card = AsyncMock(return_value=b"card")
+
+    async def command(event):
+        async for result in plugin._finish(
+            event, "周易六爻", "占卜原文", question=plugin._remainder(event),
+        ):
+            yield result
+
+    plugin.zhouyi_cmd = command
+
+    async def verify():
+        assert [item async for item in plugin.keyword_trigger(event)] == [[("image", b"card")]]
+        assert plugin._generate_ai_card.await_args.args[1] == {}
+        plugin.config["ai_image_include_question"] = True
+        assert [item async for item in plugin.keyword_trigger(event)] == [[("image", b"card")]]
+        assert plugin._generate_ai_card.await_args.args[1] == {"question": "今日财运"}
+
+    asyncio.run(verify())

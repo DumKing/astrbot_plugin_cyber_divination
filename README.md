@@ -8,7 +8,7 @@
 
 ---
 
-# 🔮 赛博占卜 · DumKing 五主题卡片 V3.2.7
+# 🔮 赛博占卜 · DumKing 五主题卡片 V3.2.8
 
 > 周易六爻、观音灵签、塔罗牌、奇门遁甲、每日运势 —— 传统占卜体系的赛博娱乐实现。
 
@@ -142,12 +142,13 @@ V3.2.5 的市场标识为 `DumKing/astrbot_plugin_cyber_divination_cards`。从�
 | `ai_image_auth_header` | `bearer` | `bearer` 发送 `Authorization: Bearer …`，`api-key` 发送 `api-key` 请求头 |
 | `ai_image_size` | 空 | 节点支持的尺寸，例如 `1024x1536`。留空使用服务默认值，提示词仍引导接近 3:4 的构图 |
 | `ai_image_download_origin` | 空 | URL 图片默认只下载同源地址。若节点返回独立 CDN 地址，填如 `https://cdn.example.com` |
+| `ai_image_include_question` | `false` | 开启后将问题原文交给绘图节点排版为「所问之事」 |
 | `ai_image_timeout_seconds` | `180` | 单次请求、下载及图片验证的总超时，限制为 1–600 秒 |
 | `ai_prompt_zhouyi` / `ai_prompt_lingqian` / `ai_prompt_tarot` / `ai_prompt_qimen` / `ai_prompt_daily` | 五套独立默认提示词 | 可在后台逐套编辑。清空使用默认；插件自动追加本次结果的 JSON |
 
 节点须同步返回最终图片。请求为 JSON，例如 `{"model":"your-model","prompt":"…","n":1,"size":"1024x1536"}`。支持 [OpenAI Images 生成接口](https://developers.openai.com/api/reference/resources/images/methods/generate) 的 `data[0].b64_json` 或 `data[0].url`，也支持直接返回 PNG、JPEG、WebP。异步任务 ID 需要由节点网关转换成同步响应。图片限 10 MiB、1600 万像素、单帧。API 和下载均禁止重定向，下载请求不携带 API 密钥。
 
-五套默认提示词沿用玄墨鎏金、莲华古卷、星辉秘境、九宫天机和晨曦花笺，并分别详细指定背景、标题、主体信息、下部区块和字体。升级时会使用新版默认提示词，之前手动编辑过的提示词会保留。动态字段来自实际起卦、抽签和排盘结果。发给绘图节点的是版式提示和占卜字段，不含提问正文、用户昵称、用户 ID 或 LLM 润色文本。奇门的起局时刻会随排盘字段发送。AI 卡片中的汉字、爻线或宫位可能出现模型误差。AI 和 HTML 出图成功时均只发送图片。
+五套默认提示词沿用玄墨鎏金、莲华古卷、星辉秘境、九宫天机和晨曦花笺，并分别详细指定背景、标题、主体信息、下部区块和字体。升级时会使用新版默认提示词，之前手动编辑过的提示词会保留。动态字段来自实际起卦、抽签和排盘结果。发给绘图节点的是版式提示和占卜字段，默认不含提问正文；打开 `ai_image_include_question` 后会将问题原文发给绘图节点。用户昵称、用户 ID 和 LLM 润色文本不随绘图请求发送。奇门的起局时刻会随排盘字段发送。AI 卡片中的汉字、爻线或宫位可能出现模型误差。AI 和 HTML 出图成功时均只发送图片。
 
 API 超时、鉴权失败、无效响应或图片下载失败时，用**同一次占卜结果**渲染 HTML。HTML 失败则发送原文。每次占卜最多请求一次绘图 API。每日运势在同一插件进程内按服务器日期和发送者 ID 缓存成功的 AI 图片，同一用户当天重复查询会复用图片。无发送者 ID 或生图失败时不写入缓存。重载或重启插件会清空缓存；缓存满时优先淘汰最久未使用的图片。
 

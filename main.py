@@ -242,6 +242,8 @@ class CyberDivination(Star):
             return
         if ai_mode:
             try:
+                if question and self._cfg("ai_image_include_question", False):
+                    data = {**data, "question": question}
                 image = await self._get_ai_image(event, title, data, zhouyi_cast)
                 yield event.chain_result([Image.fromBytes(image)])
                 return

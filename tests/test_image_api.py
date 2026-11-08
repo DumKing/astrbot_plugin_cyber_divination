@@ -48,7 +48,7 @@ def test_five_defaults_and_structured_data():
     for kind, (data, field, expected) in fixtures.items():
         style = DEFAULT_STYLES[kind]
         assert schema[f"ai_prompt_{kind}"]["default"] == style
-        prompt = build_prompt(style, kind, "主题", {**data, "question": "private-question"}, cast)
+        prompt = build_prompt(style, kind, "主题", {**data, "sender": "private-sender"}, cast)
         assert prompt.startswith(style)
         assert "private-" not in prompt
         payload = json.loads(prompt.split("构图参考数据：", 1)[1].splitlines()[0])
@@ -183,3 +183,11 @@ def test_all_five_references_are_bundled():
     directory = Path(__file__).parents[1] / "references"
     for kind in DEFAULT_STYLES:
         assert _read_reference(directory / f"{kind}.jpg")
+
+
+
+def test_prompt_includes_the_question_when_provided():
+    prompt = build_prompt(DEFAULT_STYLES["zhouyi"], "zhouyi", "周易六爻", {"question": "今日财运"})
+    payload = json.loads(prompt.split("构图参考数据：", 1)[1].splitlines()[0])
+    assert payload["question"] == "今日财运"
+    assert "将 question 原文标为「所问之事」" in prompt

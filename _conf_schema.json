@@ -226,5 +226,11 @@
     "default": "收到收到，正在为你生成{title}卡片，请稍等～",
     "description": "出图确认文案",
     "hint": "{title} 会替换为本次占卜名称。留空不发文字。"
+  },
+  "ai_image_include_question": {
+    "type": "bool",
+    "default": false,
+    "description": "在 AI 卡片上显示所问之事",
+    "hint": "开启后，所问之事原文会发给配置的绘图节点。仅影响 AI 出图。"
   }
 }
