@@ -10,8 +10,8 @@ from pathlib import Path
 from weakref import WeakValueDictionary
 
 from astrbot.api import AstrBotConfig, logger
-from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import At, Image, Reply
+from astrbot.api.event import AstrMessageEvent, MessageChain, filter
+from astrbot.api.message_components import At, Image, Plain, Reply
 from astrbot.api.star import Context, Star
 
 from .core import daily, lingqian, qimen, tarot, zhouyi
@@ -29,6 +29,8 @@ _SUB_WORDS = {
     "help", "帮助", "菜单", "usage",
 }
 
+_ACK_TIMEOUT_SECONDS = 2
+_ACK_TEXT = "收到收到，正在为你生成{title}卡片，请稍等～"
 _DAILY_CACHE_MAX_IMAGES = 64
 _DAILY_CACHE_MAX_BYTES = 32 * 1024 * 1024
 _MAX_QUESTION = 120
@@ -191,6 +193,30 @@ class CyberDivination(Star):
                 pass
         return body
 
+    async def _acknowledge_image(self, event: AstrMessageEvent, title: str):
+        actions = []
+        message_id = getattr(getattr(event, "message_obj", None), "message_id", None)
+        if self._cfg("image_ack_reaction_enabled", True):
+            call_action = getattr(getattr(event, "bot", None), "call_action", None)
+            if callable(call_action) and str(message_id).lstrip("-").isdigit():
+                actions.append(call_action(
+                    "set_msg_emoji_like", message_id=int(message_id), emoji_id="124", set=True,
+                ))
+        if self._cfg("image_ack_text_enabled", False):
+            template = str(self._cfg("image_ack_text", _ACK_TEXT) or "").strip()
+            if template:
+                parts = [Reply(id=message_id)] if message_id else []
+                parts.append(Plain(template.replace("{title}", title)))
+                actions.append(event.send(MessageChain(parts)))
+        if actions:
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*actions, return_exceptions=True),
+                    timeout=_ACK_TIMEOUT_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                logger.debug("cyber_divination 出图确认超时")
+
     async def _finish(
         self,
         event: AstrMessageEvent,
@@ -204,13 +230,19 @@ class CyberDivination(Star):
         card_data: dict | None = None,
     ):
         """统一输出：先尝试 LLM 润色，再按配置输出精美卡片或文本。"""
+        use_image = self._cfg("use_image", False)
+        ai_mode = self._cfg("image_mode", "html") == "ai"
+        data = card_data or {}
+        cache_key = self._daily_image_key(event, data) if use_image and ai_mode else None
+        if use_image and (cache_key is None or cache_key not in self._daily_images):
+            await self._acknowledge_image(event, title)
         body = await self._maybe_llm(event, title, body)
-        if not self._cfg("use_image", False):
+        if not use_image:
             yield event.plain_result(body)
             return
-        if self._cfg("image_mode", "html") == "ai":
+        if ai_mode:
             try:
-                image = await self._get_ai_image(event, title, card_data or {}, zhouyi_cast)
+                image = await self._get_ai_image(event, title, data, zhouyi_cast)
                 yield event.chain_result([Image.fromBytes(image)])
                 return
             except Exception as exc:
@@ -245,13 +277,16 @@ class CyberDivination(Star):
             logger.warning(f"cyber_divination HTML 渲染失败，回退纯文本: {type(exc).__name__}")
         yield event.plain_result(body)
 
+    def _daily_image_key(self, event: AstrMessageEvent, data: dict) -> tuple[date, str] | None:
+        if (draw := data.get("daily")) and (sender_id := self._sender_id(event)):
+            return draw["date"], sender_id
+        return None
+
     async def _get_ai_image(self, event: AstrMessageEvent, title: str, data: dict, cast) -> bytes:
-        draw = data.get("daily")
-        sender_id = self._sender_id(event) if draw else ""
-        if not sender_id:
+        key = self._daily_image_key(event, data)
+        if key is None:
             return await self._generate_ai_card(title, data, cast)
 
-        key = (draw["date"], sender_id)
         lock = self._daily_image_locks.setdefault(key, asyncio.Lock())
         async with lock:
             cached = self._daily_images.get(key)

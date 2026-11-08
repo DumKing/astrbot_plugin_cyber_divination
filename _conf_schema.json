@@ -209,5 +209,22 @@
     ],
     "description": "参考图上传字段",
     "hint": "按节点接口要求选择；默认 image[]。"
+  },
+  "image_ack_reaction_enabled": {
+    "type": "bool",
+    "default": true,
+    "description": "出图前给原消息贴 OK 表情",
+    "hint": "需要支持消息表情的 NapCat / OneBot 适配器。"
+  },
+  "image_ack_text_enabled": {
+    "type": "bool",
+    "default": false,
+    "description": "出图前发送确认文字"
+  },
+  "image_ack_text": {
+    "type": "text",
+    "default": "收到收到，正在为你生成{title}卡片，请稍等～",
+    "description": "出图确认文案",
+    "hint": "{title} 会替换为本次占卜名称。留空不发文字。"
   }
 }

@@ -8,7 +8,7 @@
 
 ---
 
-# 🔮 赛博占卜 · DumKing 五主题卡片 V3.2.6
+# 🔮 赛博占卜 · DumKing 五主题卡片 V3.2.7
 
 > 周易六爻、观音灵签、塔罗牌、奇门遁甲、每日运势 —— 传统占卜体系的赛博娱乐实现。
 
@@ -119,6 +119,16 @@ V3.2.5 的市场标识为 `DumKing/astrbot_plugin_cyber_divination_cards`。从�
 | `card_theme` | `auto` | `auto`：五套主题自动切换；`gold`：五种排版保留、切换统一黑金配色 |
 | `card_hd` | `true` | 使用高分辨率 PNG（约 1.3 倍像素），耗时和文件体积略增 |
 
+
+### 出图前确认
+
+| 配置项 | 默认 | 说明 |
+| --- | --- | --- |
+| `image_ack_reaction_enabled` | `true` | 给触发消息贴 QQ 的 OK 表情，需 NapCat 或兼容 OneBot 表情接口 |
+| `image_ack_text_enabled` | `false` | 出图前另发一条确认消息 |
+| `image_ack_text` | 收到收到，正在为你生成{title}卡片，请稍等～ | `{title}` 自动替换为占卜名称，留空时不发确认文字 |
+
+开启图片输出后，插件在 HTML 渲染或 AI 出图前发送确认。帮助、查牌、历史、纯文本占卜及命中图片缓存的每日运势直接回复结果。确认发送失败或超时，插件会继续占卜。
 
 ### AI 绘图 API
 

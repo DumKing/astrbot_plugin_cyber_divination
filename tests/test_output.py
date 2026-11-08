@@ -33,6 +33,7 @@ def load_plugin():
         "astrbot.api": SimpleNamespace(AstrBotConfig=dict, logger=Mock()),
         "astrbot.api.event": SimpleNamespace(
             AstrMessageEvent=object,
+            MessageChain=list,
             filter=SimpleNamespace(
                 command_group=command_group,
                 EventMessageType=SimpleNamespace(ALL=0),
@@ -43,6 +44,7 @@ def load_plugin():
         "astrbot.api.message_components": SimpleNamespace(
             Image=SimpleNamespace(fromBytes=lambda data: ("image", data)),
             Reply=lambda *, id: ("reply", id),
+            Plain=lambda text: ("plain", text),
             At=lambda *, qq: ("at", qq),
         ),
     }
@@ -163,5 +165,57 @@ def test_daily_ai_image_cache_reuses_success_by_sender_and_date():
             raise AssertionError("expected generation to fail")
         assert await fetch(alice, failure) == b"retry"
         assert generate.await_count == 5
+
+    asyncio.run(verify())
+
+
+def test_image_acknowledgement_is_independent_and_precedes_generation():
+    plugin = load_plugin()(None, {
+        "use_image": True,
+        "image_mode": "ai",
+        "image_ack_text_enabled": True,
+        "image_ack_text": "收到，正在生成{title}",
+    })
+    reaction = AsyncMock(side_effect=RuntimeError("unsupported"))
+    send = AsyncMock()
+    event = SimpleNamespace(
+        message_obj=SimpleNamespace(message_id="42"),
+        get_sender_id=lambda: "sender",
+        bot=SimpleNamespace(call_action=reaction),
+        send=send,
+        chain_result=lambda chain: chain,
+        plain_result=lambda text: ("plain", text),
+    )
+
+    async def generate(*args):
+        reaction.assert_awaited_once_with(
+            "set_msg_emoji_like", message_id=42, emoji_id="124", set=True,
+        )
+        send.assert_awaited_once_with([("reply", "42"), ("plain", "收到，正在生成每日运势")])
+        return b"image"
+
+    plugin._generate_ai_card = AsyncMock(side_effect=generate)
+
+    async def verify():
+        card_data = {"daily": {"date": date(2026, 11, 8)}}
+
+        async def collect():
+            return [item async for item in plugin._finish(
+                event, "每日运势", "占卜原文", card_data=card_data,
+            )]
+
+        assert await collect() == [[("image", b"image")]]
+        assert await collect() == [[("image", b"image")]]
+        plugin.config["use_image"] = False
+        assert await collect() == [("plain", "占卜原文")]
+        plugin._generate_ai_card.assert_awaited_once()
+        reaction.assert_awaited_once()
+        send.assert_awaited_once()
+
+        plugin.config["image_ack_reaction_enabled"] = False
+        send.reset_mock()
+        await plugin._acknowledge_image(event, "周易六爻")
+        reaction.assert_awaited_once()
+        send.assert_awaited_once_with([("reply", "42"), ("plain", "收到，正在生成周易六爻")])
 
     asyncio.run(verify())
