@@ -7,6 +7,7 @@ import unittest
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from PIL import Image
@@ -99,6 +100,38 @@ class ImageAPITests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(self.session.post.call_args.kwargs["headers"], {"api-key": "key"})
         self.assertEqual(self.session.get.call_args.kwargs, {"allow_redirects": False})
+
+    async def test_reference_image_is_uploaded_with_prompt(self):
+        self.respond("post", self.png, content_type="image/png")
+
+        class Buffer:
+            def __init__(self):
+                self.data = bytearray()
+
+            async def write(self, chunk):
+                self.data.extend(chunk)
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "zhouyi.jpg"
+            Image.new("RGB", (8, 8)).save(path, "JPEG")
+            for field in ("image[]", "image"):
+                self.assertEqual(await self.generate(reference=path, reference_field=field), self.png)
+                request = self.session.post.call_args.kwargs
+                self.assertNotIn("json", request)
+                encoded = Buffer()
+                await request["data"]().write(encoded)
+                self.assertIn(f'name="{field}"; filename="zhouyi.jpg"'.encode(), encoded.data)
+                self.assertIn(b"image/jpeg", encoded.data)
+                self.assertIn("提示".encode(), encoded.data)
+                self.assertIn(path.read_bytes(), encoded.data)
+
+    async def test_invalid_reference_stops_before_request(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "zhouyi.jpg"
+            path.write_bytes(self.png)
+            with self.assertRaises(OSError):
+                await self.generate(reference=path)
+        self.session.post.assert_not_called()
 
     async def test_raw_image(self):
         self.respond("post", self.png, content_type="image/png")

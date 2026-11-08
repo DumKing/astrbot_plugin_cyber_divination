@@ -5,6 +5,7 @@ import asyncio
 import re
 import time
 from datetime import date, datetime
+from pathlib import Path
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
@@ -241,9 +242,20 @@ class CyberDivination(Star):
         kind = kind_for(title)
         style = str(self._cfg(f"ai_prompt_{kind}", "") or "").strip()
         prompt = build_prompt(resolve_style(kind, style), kind, title, card_data, cast)
+        reference_endpoint = str(self._cfg("ai_image_reference_endpoint", "") or "").strip()
+        reference = None
+        if reference_endpoint:
+            reference = Path(__file__).resolve().parent / "references" / f"{kind}.jpg"
+            prompt += (
+                "\n随请求上传的图片是视觉参考。尽量沿用它的版式、配色、边框、字体气质与装饰。"
+                "先清除示例中的卦名、爻线、签号、牌名、日期、人名和结论，再按本次 JSON 排版。"
+                "参考图与本次数据冲突时，以本次数据为准；不要复刻参考图上的旧文字。"
+            )
         return await generate_image(
             prompt,
-            endpoint=str(self._cfg("ai_image_endpoint", "") or "").strip(),
+            endpoint=reference_endpoint or str(self._cfg("ai_image_endpoint", "") or "").strip(),
+            reference=reference,
+            reference_field=self._cfg("ai_image_reference_field", "image[]"),
             model=str(self._cfg("ai_image_model", "") or "").strip(),
             api_key=str(self._cfg("ai_image_api_key", "") or "").strip(),
             auth_header=self._cfg("ai_image_auth_header", "bearer"),
