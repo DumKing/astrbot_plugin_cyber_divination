@@ -4,7 +4,7 @@ short_desc: 五种独立艺术卡片：黑金周易、宣纸灵签、星空塔�
 desc: 赛博占卜插件：周易六爻（含六神）、观音灵签、塔罗牌（单张/三张牌阵与查牌）、奇门遁甲（简式时家排盘，不填时间自动检测当前时刻）、每日运势（按日期固定）。提供 /占卜 历史 查看记录，支持无前缀关键词匹配、五主题 HTML 卡片、自定义绘图 API 和可选 LLM 润色。
 version: 3.2.4
 author: ruoyuxian20-sys
-repo: https://github.com/DumKing/astrbot_plugin_cyber_divination
+repo: https://github.com/DumKing/astrbot_plugin_cyber_divination_cards
 astrbot_version: ">=4.9.2"
 tags:
   - 占卜
