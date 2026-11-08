@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1300" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+ <defs>
+  <linearGradient id="lot-petal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f6d8cb" stop-opacity=".86"/><stop offset="1" stop-color="#b76d68" stop-opacity=".41"/></linearGradient>
+  <linearGradient id="lot-gold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#c2a078"/><stop offset=".5" stop-color="#e6d4b4"/><stop offset="1" stop-color="#9f7955"/></linearGradient>
+ </defs>
+ <!-- faint temple roof ornaments -->
+ <g fill="none" stroke="#a6835e" stroke-width="3" opacity=".28">
+  <path d="M77 200 Q160 175 214 124 Q277 184 376 191 M524 191 Q626 179 681 124 Q743 177 824 198"/>
+  <path d="M100 205L376 205M524 205L800 205"/>
+  <path d="M145 213V262M338 213V262M570 213V262M764 213V262"/>
+ </g>
+ <g fill="none" stroke="#c3a17c" stroke-width="1.8" opacity=".25">
+  <path d="M104 90q86-61 168 0M626 89q87-61 168 0"/>
+  <path d="M102 278q70 32 140 0m421 0q70 32 139 0"/>
+ </g>
+ <!-- leaves and lotus flowers, corners -->
+ <g transform="translate(130 300)" opacity=".72">
+  <path d="M-60 45Q-53-26 45-60Q16 17-60 45Z" fill="#8a9b74" opacity=".38"/>
+  <path d="M-59 45L25-39M-42 29L-45-1M-20 6L9 12" fill="none" stroke="#76876a" stroke-width="2"/>
+  <g fill="url(#lot-petal)" stroke="#b77b73" stroke-width="1.6">
+   <ellipse cx="18" cy="-22" rx="13" ry="46" transform="rotate(-40 18 -22)"/>
+   <ellipse cx="28" cy="-28" rx="12" ry="48" transform="rotate(-17 28 -28)"/>
+   <ellipse cx="40" cy="-23" rx="13" ry="48" transform="rotate(17 40 -23)"/>
+   <ellipse cx="47" cy="-19" rx="12" ry="46" transform="rotate(40 47 -19)"/>
+  </g>
+  <path d="M5-10Q29 9 58-10" fill="none" stroke="#8b6655" stroke-width="3"/>
+ </g>
+ <g transform="translate(760 280) scale(-.92 .92)" opacity=".62">
+  <path d="M-60 45Q-53-26 45-60Q16 17-60 45Z" fill="#8a9b74" opacity=".38"/>
+  <g fill="url(#lot-petal)" stroke="#b77b73" stroke-width="1.6">
+   <ellipse cx="18" cy="-22" rx="13" ry="46" transform="rotate(-40 18 -22)"/>
+   <ellipse cx="28" cy="-28" rx="12" ry="48" transform="rotate(-17 28 -28)"/>
+   <ellipse cx="40" cy="-23" rx="13" ry="48" transform="rotate(17 40 -23)"/>
+   <ellipse cx="47" cy="-19" rx="12" ry="46" transform="rotate(40 47 -19)"/>
+  </g>
+ </g>
+ <g opacity=".39" fill="none" stroke="#9e8869">
+  <path d="M58 1050Q169 1014 264 1055M633 1063Q742 1020 835 1060"/>
+  <path d="M130 1105q78-30 141 3M634 1109q77-31 139 0"/>
+ </g>
+ <g opacity=".4" fill="#a58969">
+  <circle cx="64" cy="449" r="3"/><circle cx="789" cy="512" r="3"/><circle cx="98" cy="648" r="2"/><circle cx="836" cy="702" r="2"/>
+ </g>
+ <g fill="none" stroke="#9b7a58" opacity=".34">
+  <path d="M75 1170q162-65 320 0t360 0" stroke-width="3"/>
+  <path d="M94 1180q185-52 355 3t333-3"/>
+ </g>
+</svg>

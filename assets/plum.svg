@@ -1,0 +1,30 @@
+<svg viewBox="0 0 220 150" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+ <linearGradient id="branch" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6b482c"/><stop offset=".5" stop-color="#be935c"/><stop offset="1" stop-color="#38291d"/></linearGradient>
+ <radialGradient id="petal"><stop stop-color="#fff7e9"/><stop offset=".58" stop-color="#e6ceab"/><stop offset="1" stop-color="#bc9b74"/></radialGradient>
+</defs>
+<g opacity=".92" fill="none" stroke="url(#branch)" stroke-width="3" stroke-linecap="round">
+ <path d="M-12 9 Q37 15 63 56 T146 102" stroke-width="6"/>
+ <path d="M9 15 Q47 22 83 10 T128 -3" stroke-width="3"/>
+ <path d="M42 37 Q43 72 28 95" stroke-width="3"/>
+ <path d="M73 61 Q97 38 101 20" stroke-width="3"/>
+ <path d="M105 87 Q126 64 157 67" stroke-width="2"/>
+ <path d="M137 98 Q156 104 193 108" stroke-width="2"/>
+</g>
+<g fill="#d7bb88" opacity=".95"><circle cx="57" cy="28" r="2"/><circle cx="117" cy="95" r="2"/><circle cx="168" cy="105" r="2"/><circle cx="24" cy="77" r="2"/></g>
+<g id="flower">
+ <ellipse cx="0" cy="-10" rx="7.5" ry="11" fill="url(#petal)" stroke="#f8e6bf" stroke-width=".7"/>
+ <ellipse cx="9.5" cy="-3" rx="7.5" ry="11" transform="rotate(72 9.5 -3)" fill="url(#petal)" stroke="#f8e6bf" stroke-width=".7"/>
+ <ellipse cx="5.5" cy="8" rx="7.5" ry="11" transform="rotate(144 5.5 8)" fill="url(#petal)" stroke="#f8e6bf" stroke-width=".7"/>
+ <ellipse cx="-5.5" cy="8" rx="7.5" ry="11" transform="rotate(216 -5.5 8)" fill="url(#petal)" stroke="#f8e6bf" stroke-width=".7"/>
+ <ellipse cx="-9.5" cy="-3" rx="7.5" ry="11" transform="rotate(288 -9.5 -3)" fill="url(#petal)" stroke="#f8e6bf" stroke-width=".7"/>
+ <circle r="4.5" fill="#dfb872" stroke="#fff0cb" stroke-width="1"/>
+ <circle cx="0" cy="0" r="1.5" fill="#a26b3f"/>
+</g>
+<use href="#flower" transform="translate(77 50) scale(.85)"/>
+<use href="#flower" transform="translate(31 67) scale(.48)"/>
+<use href="#flower" transform="translate(112 91) scale(.51)"/>
+<use href="#flower" transform="translate(139 67) scale(.37)"/>
+<use href="#flower" transform="translate(99 19) scale(.35)"/>
+<use href="#flower" transform="translate(153 104) scale(.30)"/>
+</svg>

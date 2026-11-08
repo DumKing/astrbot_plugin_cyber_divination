@@ -1,0 +1,8 @@
+/* 黑金统一配色：保留五种卡片各自的独立布局 */
+.page.gold-variant{background:radial-gradient(ellipse at center top,#31263b,#0d101a 72%);color:#f3e7cc}
+.page.gold-variant .frame-outer{border-color:#bc9660}
+.page.gold-variant .frame-inner{border-color:#745b40}
+.page.gold-variant header h1{color:#f8dfb0;text-shadow:0 0 22px rgba(236,181,106,.25)}
+.page.gold-variant header .preface,.page.gold-variant header .subheading{color:#e2bc80}
+.page.gold-variant>main{color:#f2e3cc}
+.page.gold-variant footer{color:#dfc497}

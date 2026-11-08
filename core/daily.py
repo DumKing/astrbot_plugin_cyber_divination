@@ -18,6 +18,22 @@ _GRADE_ADVICE = {
 }
 
 
+def grade_advice(grade: str) -> str:
+    return _GRADE_ADVICE.get(grade, "顺其自然，过好当下。")
+
+
+def lucky_details(d: date, uid: str, grade: str) -> dict:
+    """Deterministic entertainment details shared by both card renderers."""
+    digest = hashlib.sha256(f"{d.isoformat()}|{uid}".encode()).digest()
+    return {
+        "color": ["桃花粉", "晨曦金", "青竹绿", "云雾蓝", "紫藤紫"][digest[0] % 5],
+        "number": digest[1] % 9 + 1,
+        "do": ["按计划推进", "整理思路", "联系朋友", "适当休息", "学习新知"][digest[2] % 5],
+        "avoid": ["一时冲动", "拖延决定", "过度劳累", "争强好胜", "盲目跟风"][digest[3] % 5],
+        "stars": {"上上": 5, "上签": 4, "中签": 3, "中平": 3, "下签": 2}.get(grade, 3),
+    }
+
+
 def daily_seed(d: date, uid: str) -> int:
     """稳定种子：同一（日期, 用户）结果固定，且跨进程一致。"""
     raw = f"{d.isoformat()}|{uid}".encode()
@@ -63,7 +79,7 @@ def format_daily(data: dict, uid_name: str = "") -> str:
         dyn = "、".join(str(i) for i in cast.moving)
         parts.append(f"  动爻第{dyn}爻，变{cast.changed_name}卦，事有变化之机")
     parts.append("")
-    parts.append(f"综合建议：{_GRADE_ADVICE.get(grade, '顺其自然，过好当下。')}")
+    parts.append(f"综合建议：{grade_advice(grade)}")
     parts.append("")
     parts.append("※ 每日运势当天固定、明日刷新；仅供娱乐参考。")
     return "\n".join(parts)

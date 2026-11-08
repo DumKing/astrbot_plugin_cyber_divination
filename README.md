@@ -1,8 +1,8 @@
-# 🔮 赛博占卜 cyber_divination
+# 🔮 赛博占卜 cyber_divination — 五主题艺术卡片 V3.1
 
 > 周易六爻、观音灵签、塔罗牌、奇门遁甲、每日运势 —— 传统占卜体系的赛博娱乐实现。
 
-一个 AstrBot v4 插件：**纯文本开箱即用**，可选 LLM 个性化润色与生图节点生成的图文卡片。功能在收到命令或启用的关键词时响应，不会主动冒泡刷屏。
+适用于 AstrBot 4.9.2 及以上。支持无前缀关键词、五主题 HTML 卡片、可配置的 AI 绘图 API，以及可选 LLM 润色。默认发送纯文本，开启图片后可以选择 HTML 或 AI。
 
 ---
 
@@ -17,11 +17,13 @@
 | 🌅 每日运势 | 塔罗 + 灵签 + 周易三合一运势卡，按（日期, 用户）**当天固定、明日刷新** |
 | 🗂️ 占卜历史 | 本会话占卜记录（类型 + 摘要 + 时间），可查看与清除 |
 | 🤖 可选 LLM 润色 | 调用当前会话模型生成个性化解读，带超时、冷却与**失败退避**，任何失败自动回退内置解读 |
-| 🖼️ 图文卡片 | 通过 OmniDraw 的画图节点生成占卜卡片；失败自动回退纯文本 |
+| 🖼️ 图文卡片 | HTML + CSS + 内嵌 SVG，或通过自定义 API 生成五种风格的图文卡片 |
 
 ## 🚀 安装
 
-把整个 `cyber_divination` 目录复制到 AstrBot 数据目录的 `data/plugins/` 下，然后在 Dashboard 启用插件（或重启 AstrBot）。
+**推荐：在 AstrBot 插件管理后台上传 ZIP 安装。** 安装包以一个插件目录为外层，内含 `metadata.yaml`、`main.py`、`_conf_schema.json`、`requirements.txt` 及完整卡片资源。升级时使用与现有插件目录同名的 ZIP，避免重复加载。
+
+也可以解压到 `data/plugins/cyber_divination/` 并重新加载插件。升级前可备份 `data/config/cyber_divination_config.json`，并通过原安装目录更新。
 
 ## 📖 使用
 
@@ -61,13 +63,9 @@
 
 ### 关键词触发
 
-在插件设置开启 `keyword_trigger_enabled`，即可直接发送「塔罗」「求灵签」「奇门遁甲」「六爻」「每日运势」或「占卜帮助」。在 `keyword_aliases` 中可以为每项功能自定义词组，填空列表可禁用该项。
+开启 `keyword_trigger_enabled`，可直接发送「塔罗」「求灵签」「奇门遁甲」「六爻」「每日运势」或「占卜帮助」。在 `keyword_aliases` 中可分别编辑关键词，空列表禁用对应功能的关键词触发。
 
-默认完全匹配。选择开头匹配后，可以发送「塔罗 三张 最近的状态怎么样」；包含匹配适合希望在一句话中触发的群。关键词后的文字会传给对应的占卜命令。带唤醒前缀的消息仍由原命令处理。
-
-### 生图节点输出
-
-先在 OmniDraw（万象画卷）设置中添加生图节点，并在「画图」链路选中它。需要使用提供 `generate_images_for_plugin` 接口的 OmniDraw 版本。开启本插件的 `use_image` 后，占卜结果会作为原文交给该节点，生成一张卡片。节点的权限与额度设置仍然生效，生成失败时会发原文。模型生成图片里的汉字可能有误差；需要精确核对卦名或牌意时可使用纯文本输出。
+`keyword_trigger_mode` 支持完全匹配 `exact`、开头匹配 `starts_with` 和包含匹配 `contains`。后两种会将关键词后的文字交给原命令，例如「塔罗 三张 最近的状态怎么样」。带唤醒前缀的消息由原命令处理。
 
 ## ⚙️ 配置（Dashboard 插件设置）
 
@@ -77,14 +75,83 @@
 | `llm_cooldown_seconds` | `300` | 每个会话两次 LLM 调用的最小间隔（秒），防止频繁调用 |
 | `llm_timeout_seconds` | `30` | 单次 LLM 调用超时（秒），超时自动回退内置解读 |
 | `history_max` | `10` | 每个会话保留的占卜历史条数上限（1-50） |
-| `keyword_trigger_enabled` | `false` | 启用无前缀关键词 |
-| `keyword_trigger_mode` | `exact` | 完全匹配、开头匹配（`starts_with`）或包含匹配（`contains`） |
-| `keyword_aliases` | 内置词组 | 各占卜功能的自定义关键词 |
-| `use_image` | `false` | 使用 OmniDraw 的「画图」链路生成卡片 |
-| `image_style` | 深色背景、细金边框、简洁神秘风 | 卡片画面风格 |
-| `image_aspect_ratio` | `3:4` | 卡片比例，取决于节点支持 |
-| `image_size` | 留空 | 使用节点默认尺寸，可按节点能力覆盖 |
-| `image_timeout_seconds` | `180` | 生图最长等待时间 |
+| `use_image` | `false` | 总图片开关。关闭即发送纯文本 |
+| `image_mode` | `html` | `html` 只用 AstrBot HTML 渲染，`ai` 优先调用绘图 API |
+| `card_theme` | `auto` | `auto`：五套主题自动切换；`gold`：五种排版保留、切换统一黑金配色 |
+| `card_hd` | `true` | 使用高分辨率 PNG（约 1.3 倍像素），耗时和文件体积略增 |
+
+
+### AI 绘图 API
+
+设置 `use_image=true`、`image_mode=ai`，然后填写下表。切回 `image_mode=html` 即关闭 AI 调用。旧版 OmniDraw 设置已由这些字段替代，升级后已有的 `use_image` 设置仍适用，图片模式默认为 HTML。
+
+| 配置项 | 默认 | 说明 |
+| --- | --- | --- |
+| `ai_image_endpoint` | 空 | 完整的 HTTP(S) POST 地址，例如 `https://api.example.com/v1/images/generations`。支持填内网节点 |
+| `ai_image_model` | 空 | 节点要求的模型名 |
+| `ai_image_api_key` | 空 | API 密钥。管理界面遮蔽显示，无需鉴权的节点留空 |
+| `ai_image_auth_header` | `bearer` | `bearer` 发送 `Authorization: Bearer …`，`api-key` 发送 `api-key` 请求头 |
+| `ai_image_size` | 空 | 节点支持的尺寸，例如 `1024x1536`。留空使用服务默认值，提示词仍引导接近 3:4 的构图 |
+| `ai_image_download_origin` | 空 | URL 图片默认只下载同源地址。若节点返回独立 CDN 地址，填如 `https://cdn.example.com` |
+| `ai_image_timeout_seconds` | `180` | 单次请求、下载及图片验证的总超时，限制为 1–600 秒 |
+| `ai_prompt_zhouyi` / `ai_prompt_lingqian` / `ai_prompt_tarot` / `ai_prompt_qimen` / `ai_prompt_daily` | 五套独立默认提示词 | 可在后台逐套编辑。清空使用默认；插件自动追加本次结果的 JSON |
+
+节点须同步返回最终图片。请求为 JSON，例如 `{"model":"your-model","prompt":"…","n":1,"size":"1024x1536"}`。支持 [OpenAI Images 生成接口](https://developers.openai.com/api/reference/resources/images/methods/generate) 的 `data[0].b64_json` 或 `data[0].url`，也支持直接返回 PNG、JPEG、WebP。异步任务 ID 需要由节点网关转换成同步响应。图片限 10 MiB、1600 万像素、单帧。API 和下载均禁止重定向，下载请求不携带 API 密钥。
+
+五套默认提示词沿用玄墨鎏金、莲华古卷、星辉秘境、九宫天机和晨曦花笺。动态字段来自实际起卦、抽签和排盘结果。发给绘图节点的是版式提示和占卜字段，不含提问正文、用户昵称、用户 ID 或 LLM 润色文本。奇门的起局时刻会随排盘字段发送。AI 卡片中的汉字、爻线或宫位可能出现模型误差，同一条回复附上插件原文供核对。
+
+API 超时、鉴权失败、无效响应或图片下载失败时，用**同一次占卜结果**渲染 HTML。HTML 失败则发送原文。每次占卜只请求一次绘图 API。
+
+## 🖼️ V3 五套独立主题 · 结构化数据排版
+
+不同于原有“一套布局只换颜色”，V3 的五种卡片采用独立布局与 SVG 装饰素材，按命令自动分配：
+
+| 占卜 | 视觉主题 | 动态展示的数据 |
+| --- | --- | --- |
+| 六爻 | 玄黑鎏金 · 梅花、八卦、山水亭台、书法标题 | 原始 `ZhouyiCast` 六爻值、六神、动爻、本卦/变卦、卦辞、简解和 AI 解读 |
+| 灵签 | 莲华古卷 · 米白宣纸、朱砂印、签诗 | 签号、签级、完整签诗、解曰、AI 解签 |
+| 塔罗 | 星辉秘境 · 紫金花纹、月相、独立拱形牌面 | 单张/三张牌的真实名称、正逆位与牌意（**插画为抽象原创图案，不是原始牌面照片**） |
+| 奇门 | 九宫天机 · 深青玉青铜、罗盘与 3×3 九宫 | 原项目 `make_pan` 真实九宫数据、时刻、四柱、遁局、值符值使、解析与 AI 解读 |
+| 每日 | 晨曦花笺 · 奶油白、樱花日签 | 当天确定性的塔罗、灵签、周易及综合建议；另加明确标注的趣味幸运指数/颜色/数字/宜忌 |
+
+具体说明：
+
+- 图片内容由原来的占卜算法确定，**不会把概念图中的文字与错误数据当成真实结果**。
+- 通过 AstrBot `self.html_render(..., options={"type":"png", "full_page":True, ...})` 渲染，发送 `event.image_result(url)`。
+- 所有装饰性 SVG 和 CSS 都已内嵌到 HTML 中，不访问外部图片服务器。
+- 默认 900 CSS 像素宽、自动适应高度，`card_hd=true` 时使用高清 DPI。
+- 图片失败自动回退为原项目文本输出；`use_image=false` 可全程使用文本。
+- 历史查询、塔罗查牌、帮助等辅助命令继续按原项目使用文本方式返回。
+
+### 字体与 Ubuntu / Docker
+
+字体由**实际运行截图的 AstrBot/T2I 容器**提供，不是 QQ 客户端字体。为了让中文书法标题与正文正常显示，建议截图容器安装：
+
+```bash
+# Debian / Ubuntu 容器内（不是只在主机安装）
+apt-get update
+apt-get install -y fonts-noto-cjk fonts-arphic-kai fontconfig
+fc-cache -f
+fc-match 'Noto Serif CJK SC'
+fc-match 'Noto Sans CJK SC'
+fc-match 'AR PL KaitiM GB'
+```
+
+- **六爻、灵签**：标题优先楷体/书法风格（`AR PL KaitiM GB` / `STKaiti`），正文优先 `Noto Serif CJK SC`。
+- **塔罗**：英文以典雅衬线字体为主，中文使用宋体，牌名加粗。
+- **奇门**：标题楷体，宫位数字/数据以清晰字体渲染。
+- **每日**：清新手写风格标题，正文 `Noto Sans CJK SC`。
+- 未找到某个字体时，CSS 会自动使用替代字体；插件**没有附带任何字体文件**。
+
+### 安装与首测
+
+1. 在 AstrBot WebUI 的插件页面选择**上传 ZIP**，直接上传完整安装包，无需手动解压或覆盖文件。
+2. 启用插件，进入插件配置，将 `use_image` 设为 `true`、`card_theme` 设为 `auto`、`card_hd` 设为 `true`。
+3. 已接入 AI 模型时，可将 `llm_enabled` 设为 `true`，否则关闭也能出图。
+4. 给 QQ 机器人发送 `/占卜 六爻 今天适合出门吗` 和 `/占卜 奇门 出行吉凶` 验证图文输出。
+5. 如返回纯文本，请查看日志中的 `cyber_divination 图片渲染失败`，优先检查截图服务及字体环境。
+
+实际 AstrBot + NapCat 的发图可用以上命令在服务器上验证。
 
 ## 🧠 设计说明
 
@@ -92,7 +159,7 @@
 - **每日运势确定性**：以（日期, 用户 ID）的 MD5 摘要作种子，同一天同一人结果固定，跨进程一致。
 - **历史记录**：按会话存于插件 KV，超过 `history_max` 丢弃最旧记录，可随时清除。
 - **稳定性**：LLM 默认关闭；带超时与冷却，调用失败后 60 秒内直接回退内置解读，不会卡满超时；所有 KV/渲染失败均静默降级，不影响主流程。
-- **节点出图**：以占卜结果为卡片文字来源，直接复用 OmniDraw 的配置与接口。
+- **安全渲染**：图文卡片对用户输入做 HTML 转义，问题文本中的特殊字符不会破坏卡片。
 
 ## ❓ 常见问题
 
@@ -107,11 +174,11 @@
 
 ## 🧪 开发
 
-核心逻辑位于 `core/`，均为纯 Python（无 astrbot 依赖），可独立测试：
+测试可脱离 AstrBot 运行。在仓库根目录执行：
 
 ```bash
+python -m pip install -r requirements.txt pytest
 python -m pytest tests
-ruff check .
 ```
 
 `ruff.toml` 说明：主插件对 AstrBot 各版本 API 差异做防御式捕获与静默降级（有意为之）；干支/节气按本地天真时间计算，DTZ 类规则不适用。

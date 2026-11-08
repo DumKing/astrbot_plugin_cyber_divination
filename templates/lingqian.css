@@ -1,0 +1,34 @@
+.page.lingqian{padding:36px 48px 24px;background:radial-gradient(ellipse at center top,#fffdf0 0%,#eee0c0 44%,#d9c49d 100%);color:#593923;font-family:'Noto Serif CJK SC','AR PL SungtiL GB',serif}
+.lingqian:before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(113,76,42,.17) .65px,transparent 1px);background-size:12px 12px;opacity:.48}
+.lingqian .frame-outer{inset:20px;border:4px double #8d6846;border-radius:6px}
+.lingqian .frame-inner{inset:28px;border:1px solid rgba(128,83,45,.45)}
+.lingqian .art-layer svg{position:absolute;top:0;left:0;width:900px;height:100%;opacity:.95}
+.lingqian header{padding:24px 0 4px;border-bottom:1px solid #ac8c61}
+.lingqian header .preface{color:#987653;font-size:12px;letter-spacing:5px}
+.lingqian header h1{color:#723b30;font-family:'AR PL KaitiM GB','Noto Serif CJK SC',serif;font-size:74px;letter-spacing:10px;text-shadow:1px 1px rgba(255,255,255,.85)}
+.lingqian header .subheading{color:#92745a;font-size:18px}
+.lingqian>main{margin:6px 24px 0;position:relative;background:rgba(255,253,237,.71);padding:35px 43px 21px;border:1px solid #c0a67b;box-shadow:8px 3px 0 rgba(166,113,71,.14),-8px 3px 0 rgba(166,113,71,.14),inset 0 0 45px rgba(219,189,145,.22)}
+.lingqian>main:before,.lingqian>main:after{content:'';position:absolute;top:0;bottom:0;width:12px;background:linear-gradient(90deg,#6e4931,#bb9066,#6e4931);opacity:.56}
+.lingqian>main:before{left:-12px}.lingqian>main:after{right:-12px}
+.lingqian .scroll-crown{text-align:center;color:#a67e5d;font-size:17px;letter-spacing:6px}
+.lingqian .seal-row{display:flex;justify-content:center;align-items:center;gap:43px;margin:18px 0}
+.lingqian .sign-num{color:#573b2a;font-size:28px;letter-spacing:2px}
+.lingqian .sign-num b{font-size:50px;color:#9e3c32;font-family:'AR PL KaitiM GB','Noto Serif CJK SC',serif}
+.lingqian .vermillion-seal{width:93px;height:93px;border-radius:50%;border:4px double #9c4138;display:flex;justify-content:center;align-items:center;transform:rotate(-8deg);box-shadow:0 0 0 4px rgba(159,65,54,.08);color:#a43c31;font-weight:800;font-size:25px}
+.lingqian .vermillion-seal span{border:1px solid #ae4d3e;border-radius:50%;height:75px;width:75px;display:flex;justify-content:center;align-items:center}
+.lingqian .wish-meta{font-size:16px;border-top:1px solid #d3b895;border-bottom:1px solid #d3b895;padding:10px 15px;margin:12px auto}
+.lingqian .wish-meta .labeled{margin:5px 0}
+.lingqian .wish-meta .label{color:#a14a3f;min-width:72px}
+.lingqian .scroll-divider{text-align:center;color:#aa5a43;font-size:27px;margin:9px 0 12px}
+.lingqian .verse-wrap{text-align:center;padding:21px 15px 18px;border:1px solid #c9a77c;background:linear-gradient(110deg,rgba(235,211,167,.3),rgba(255,252,238,.75),rgba(235,211,167,.3));position:relative}
+.lingqian .verse-wrap:before,.lingqian .verse-wrap:after{content:'❁';position:absolute;font-size:26px;color:#b28c60;top:50%;transform:translateY(-50%)}
+.lingqian .verse-wrap:before{left:8px}.lingqian .verse-wrap:after{right:8px}
+.lingqian .verse-tag{font-size:18px;letter-spacing:6px;color:#a14b3e;margin-bottom:13px}
+.lingqian .verse-line{font-size:23px;letter-spacing:3px;line-height:2.02;font-family:'Noto Serif CJK SC','STFangsong','FangSong',serif;color:#483323}
+.lingqian .explain{margin:23px 0 7px;padding:8px 11px}
+.lingqian .explain h3{color:#a34e3e;border-bottom:1px solid #be9b79;font-size:24px;padding-bottom:7px;margin:0 0 10px}
+.lingqian .explain p{font-size:18px;line-height:1.9;margin:0}
+.lingqian .ai-block{background:rgba(175,88,69,.065);border:1px solid #c5a786;border-radius:3px}
+.lingqian .ai-head{color:#a54839}
+.lingqian .red-mark{color:#ab5043;text-align:center;margin-top:23px;letter-spacing:7px;font-size:17px}
+.lingqian footer{color:#865a3c;padding:21px 0 45px}
