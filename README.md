@@ -8,7 +8,7 @@
 
 ---
 
-# 🔮 赛博占卜 cyber_divination — 五主题艺术卡片 V3.2.4
+# 🔮 赛博占卜 · DumKing 五主题卡片 V3.2.5
 
 > 周易六爻、观音灵签、塔罗牌、奇门遁甲、每日运势 —— 传统占卜体系的赛博娱乐实现。
 
@@ -56,9 +56,11 @@
 
 ## 🚀 安装
 
-**推荐：在 AstrBot 插件管理后台上传 ZIP 安装。** 安装包以一个插件目录为外层，内含 `metadata.yaml`、`main.py`、`_conf_schema.json`、`requirements.txt` 及完整卡片资源。升级时使用与现有插件目录同名的 ZIP，避免重复加载。
+**推荐：在 AstrBot 插件管理后台上传 ZIP 安装。** 安装包以一个插件目录为外层，内含 `metadata.yaml`、`main.py`、`_conf_schema.json`、`requirements.txt` 及完整卡片资源。同一插件标识的后续升级可使用与现有插件目录同名的 ZIP。
 
-也可以在 AstrBot 插件管理中使用本仓库地址安装。手动安装时，将插件文件解压到 `data/plugins/cyber_divination/` 并重新加载。升级前可备份 `data/config/cyber_divination_config.json`，并通过原安装目录更新。
+也可以在 AstrBot 插件管理中使用本仓库地址安装。手动安装时，将插件文件解压到 `data/plugins/astrbot_plugin_cyber_divination_cards/` 并重新加载。
+
+V3.2.5 的市场标识为 `DumKing/astrbot_plugin_cyber_divination_cards`。从旧标识 `cyber_divination` 迁移时，先备份 `data/config/cyber_divination_config.json` 并停用旧插件，再安装新版。旧设置可按需在新版后台重新填写；已有占卜历史不会自动迁移。
 
 ## 📖 使用
 
