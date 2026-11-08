@@ -9,7 +9,7 @@ from pathlib import Path
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image
+from astrbot.api.message_components import At, Image, Reply
 from astrbot.api.star import Context, Star
 
 from .core import daily, lingqian, qimen, tarot, zhouyi
@@ -266,6 +266,16 @@ class CyberDivination(Star):
             timeout=int(self._cfg("ai_image_timeout_seconds", 180)),
         )
 
+    def _address_result(self, event: AstrMessageEvent, result):
+        prefix = []
+        message_id = getattr(event.message_obj, "message_id", None)
+        if message_id:
+            prefix.append(Reply(id=message_id))
+        if event.get_group_id() and (sender_id := self._sender_id(event)):
+            prefix.append(At(qq=sender_id))
+        result.chain[:0] = prefix
+        return result
+
     async def _run(
         self, event: AstrMessageEvent, title: str, subtitle: str, body: str,
         *, zhouyi_cast=None, question: str = "", sender: str = "",
@@ -277,10 +287,10 @@ class CyberDivination(Star):
                 zhouyi_cast=zhouyi_cast, question=question, sender=sender,
                 card_data=card_data,
             ):
-                yield result
+                yield self._address_result(event, result)
         except Exception as e:
             logger.error(f"cyber_divination {title} 处理异常: {e}")
-            yield event.plain_result("占卜出了点小问题，请稍后再试～")
+            yield self._address_result(event, event.plain_result("占卜出了点小问题，请稍后再试～"))
 
     # ---------- 命令组 ----------
 

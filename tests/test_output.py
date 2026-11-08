@@ -37,6 +37,8 @@ def load_plugin():
         "astrbot.api.star": SimpleNamespace(Context=object, Star=object),
         "astrbot.api.message_components": SimpleNamespace(
             Image=SimpleNamespace(fromBytes=lambda data: ("image", data)),
+            Reply=lambda *, id: ("reply", id),
+            At=lambda *, qq: ("at", qq),
         ),
     }
     with patch.dict(sys.modules, modules):
@@ -96,3 +98,34 @@ def test_help_command_and_bare_alias_send_the_bundled_image():
 
     event.get_message_str = lambda: "塔罗"
     assert asyncio.run(collect(plugin.keyword_trigger)) == []
+
+
+
+def test_divination_replies_address_the_original_sender():
+    plugin = object.__new__(load_plugin())
+    plugin.config = {"use_image": True, "image_mode": "ai"}
+    plugin._generate_ai_card = AsyncMock(return_value=b"card")
+    plugin.html_render = AsyncMock(return_value="rendered")
+    event = SimpleNamespace(
+        message_obj=SimpleNamespace(message_id="message-123"),
+        get_group_id=lambda: "group-456",
+        get_sender_id=lambda: "sender-789",
+        chain_result=lambda chain: SimpleNamespace(chain=chain),
+        image_result=lambda url: SimpleNamespace(chain=[("html", url)]),
+        plain_result=lambda text: SimpleNamespace(chain=[("plain", text)]),
+    )
+
+    async def collect():
+        return [item.chain async for item in plugin._run(event, "每日运势", "", "占卜原文")]
+
+    group = [("reply", "message-123"), ("at", "sender-789")]
+    assert asyncio.run(collect()) == [group + [("image", b"card")]]
+    plugin._generate_ai_card.side_effect = TimeoutError()
+    assert asyncio.run(collect()) == [group + [("html", "rendered")]]
+    plugin.html_render.return_value = None
+    assert asyncio.run(collect()) == [group + [("plain", "占卜原文")]]
+
+    event.get_group_id = lambda: ""
+    assert asyncio.run(collect()) == [[("reply", "message-123"), ("plain", "占卜原文")]]
+    event.message_obj.message_id = None
+    assert asyncio.run(collect()) == [[("plain", "占卜原文")]]
