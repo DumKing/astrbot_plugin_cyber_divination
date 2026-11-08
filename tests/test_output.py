@@ -70,3 +70,29 @@ def test_output_modes_and_fallback():
     assert asyncio.run(output(ai)) == ([[("image", b"image")]], 1, 0)
     assert asyncio.run(output(ai, image=TimeoutError())) == ([("html", "rendered")], 1, 1)
     assert asyncio.run(output(ai, image=TimeoutError(), html=None)) == ([("plain", "实际占卜原文")], 1, 1)
+
+
+
+def test_help_command_and_bare_alias_send_the_bundled_image():
+    plugin = object.__new__(load_plugin())
+    plugin.config = {"keyword_trigger_enabled": False, "use_image": False}
+    event = SimpleNamespace(
+        get_message_str=lambda: " 占卜帮助 ",
+        is_at_or_wake_command=False,
+        set_extra=Mock(),
+        stop_event=Mock(),
+        image_result=lambda path: ("image", Path(path)),
+        plain_result=Mock(),
+    )
+
+    async def collect(handler):
+        return [result async for result in handler(event)]
+
+    expected = [("image", Path(__file__).resolve().parents[1] / "assets" / "help.png")]
+    assert expected[0][1].is_file()
+    assert asyncio.run(collect(plugin.help_cmd)) == expected
+    assert asyncio.run(collect(plugin.keyword_trigger)) == expected
+    event.plain_result.assert_not_called()
+
+    event.get_message_str = lambda: "塔罗"
+    assert asyncio.run(collect(plugin.keyword_trigger)) == []

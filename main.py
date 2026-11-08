@@ -31,6 +31,8 @@ _MAX_QUESTION = 120
 _LLM_FAIL_COOLDOWN = 60
 _KEYWORD_REMAINDER = "cyber_divination_keyword_remainder"
 
+_HELP_IMAGE = Path(__file__).resolve().parent / "assets" / "help.png"
+
 _HELP_TEXT = """🔮 赛博占卜使用说明
 
 /占卜 六爻 [所问之事]
@@ -285,13 +287,17 @@ class CyberDivination(Star):
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def keyword_trigger(self, event: AstrMessageEvent):
         """让无前缀关键词复用原有占卜指令。"""
-        if not self._cfg("keyword_trigger_enabled", False) or event.is_at_or_wake_command:
-            return
-        match = match_keyword(
-            event.get_message_str(),
-            self._cfg("keyword_trigger_mode", "exact"),
-            self._cfg("keyword_aliases", {}),
-        )
+        text = event.get_message_str()
+        if text.strip() == "占卜帮助":
+            match = ("help", "")
+        else:
+            if not self._cfg("keyword_trigger_enabled", False) or event.is_at_or_wake_command:
+                return
+            match = match_keyword(
+                text,
+                self._cfg("keyword_trigger_mode", "exact"),
+                self._cfg("keyword_aliases", {}),
+            )
         if match is None:
             return
         action, remainder = match
@@ -312,7 +318,10 @@ class CyberDivination(Star):
     @divine.command("help", alias={"帮助", "菜单"})
     async def help_cmd(self, event: AstrMessageEvent):
         """查看赛博占卜使用说明"""
-        yield event.plain_result(_HELP_TEXT)
+        if _HELP_IMAGE.is_file():
+            yield event.image_result(str(_HELP_IMAGE))
+        else:
+            yield event.plain_result(_HELP_TEXT)
 
     @divine.command("zhouyi", alias={"六爻", "周易", "摇卦"})
     async def zhouyi_cmd(self, event: AstrMessageEvent):
