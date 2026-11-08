@@ -22,9 +22,23 @@
     "hint": "建议 1-50"
   },
   "use_image": {
-    "description": "使用 OmniDraw 已配置的画图节点生成占卜卡片，失败时发送纯文本。",
+    "description": "启用占卜图片输出。关闭时直接发送原文。",
     "type": "bool",
     "default": false
+  },
+  "card_theme": {
+    "description": "卡片主题：auto=五套独立主题（推荐）；gold=保持五种排版但全部切换为黑金配色。",
+    "type": "string",
+    "default": "auto",
+    "options": [
+      "auto",
+      "gold"
+    ]
+  },
+  "card_hd": {
+    "description": "高清输出（推荐）：开启后按 1.3 倍像素比例渲染 PNG，画面更清晰但耗时与体积略大。",
+    "type": "bool",
+    "default": true
   },
   "keyword_trigger_enabled": {
     "description": "启用无前缀关键词触发",
@@ -98,24 +112,86 @@
       }
     }
   },
-  "image_style": {
-    "description": "占卜卡片画面风格",
+  "image_mode": {
+    "description": "图片输出方式",
     "type": "string",
-    "default": "深色背景、细金边框、简洁神秘风"
+    "default": "html",
+    "options": [
+      "html",
+      "ai"
+    ],
+    "hint": "html 使用 AstrBot HTML 渲染；ai 调用自定义绘图接口并附占卜原文。"
   },
-  "image_aspect_ratio": {
-    "description": "卡片比例",
+  "ai_image_endpoint": {
+    "description": "绘图 API 完整地址",
     "type": "string",
-    "default": "3:4"
+    "default": "",
+    "hint": "填写完整路径，例如 https://example.com/v1/images/generations。"
   },
-  "image_size": {
-    "description": "卡片尺寸（留空使用节点默认）",
+  "ai_image_model": {
+    "description": "绘图模型名称",
     "type": "string",
     "default": ""
   },
-  "image_timeout_seconds": {
-    "description": "节点生图超时（秒）",
+  "ai_image_api_key": {
+    "description": "绘图 API 密钥（无需鉴权可留空）",
+    "type": "string",
+    "default": "",
+    "secret": true
+  },
+  "ai_image_auth_header": {
+    "description": "绘图 API 鉴权方式",
+    "type": "string",
+    "default": "bearer",
+    "options": [
+      "bearer",
+      "api-key"
+    ]
+  },
+  "ai_image_size": {
+    "description": "绘图尺寸（留空使用节点默认）",
+    "type": "string",
+    "default": ""
+  },
+  "ai_image_download_origin": {
+    "description": "额外允许下载图片的来源",
+    "type": "string",
+    "default": "",
+    "hint": "默认只接受节点同源 URL。填 CDN 的协议、主机和可选端口，例如 https://cdn.example.com。"
+  },
+  "ai_image_timeout_seconds": {
+    "description": "绘图超时秒数（含下载，1–600）",
     "type": "int",
     "default": 180
+  },
+  "ai_prompt_zhouyi": {
+    "description": "周易六爻绘图提示词",
+    "type": "text",
+    "default": "设计竖版 3:4 周易六爻结果卡，宋式东方美学，玄黑宣纸与香槟鎏金。双层中式回纹边框，左上金色梅枝、右上古铜太极八卦盘，底部是层叠水墨远山、云雾与悬崖亭台。顶部用金箔行楷写「周易六爻」，副标题「三枚铜钱 · 六爻成卦」。中部左栏排本卦、卦辞与简解，右栏自上而下排六条爻线，配六神与动爻标识。数据中的爻从下往上排列，7、9 为阳实线，6、8 为阴断线；动爻按提供的位置标注。下方用深紫黑底金框分区展示变卦和内置解读。正文用思源宋体，标签带可读的小篆风格。",
+    "hint": "只需描述构图和风格，插件会附上结构化绘图参考。清空恢复默认。"
+  },
+  "ai_prompt_lingqian": {
+    "description": "观音灵签绘图提示词",
+    "type": "text",
+    "default": "设计竖版 3:4 观音灵签结果卡，宋代书卷美学，暖象牙白、旧宣纸米黄、古铜金和朱砂红。主体为展开的宣纸卷轴，左上淡绘观音，右上寺庙飞檐与祥云，四角红金卷草纹。顶部以端庄隶书写「观音灵签」，副标题「一签一愿 · 静听天机」。以朱砂圆印突出本次签级，下面显示本次签号。签诗用仿宋竖排或居中分行，留出宽松行距，点缀淡墨莲花、莲叶和蜻蜓。下半部以卷轴框展示「解曰」。正文用思源宋体，印章用篆书。画面温柔古雅，避开科技 UI、黑色背景和西式塔罗。",
+    "hint": "只需描述构图和风格，插件会附上结构化绘图参考。清空恢复默认。"
+  },
+  "ai_prompt_tarot": {
+    "description": "塔罗绘图提示词",
+    "type": "text",
+    "default": "设计竖版 3:4 塔罗结果卡，Art Nouveau 新艺术、哥特式彩绘玻璃、午夜紫、深蓝宝石与玫瑰星金。背景为星空、月相、星座轨迹、微光和古代占星仪，边框用欧式金属浮雕和对称藤蔓。顶部以 Cinzel 或 Trajan 风格写「TAROT READING」，中文细宋标题「塔罗占卜」。按数据中的牌数布局，一张居中或三张按过去、现在、未来并排。每张牌有独立金色雕花拱框，用牌名对应的象征插画，标明牌名与正逆位。下面按牌位排版简短牌意，底部点缀月亮、水晶和金线。画面像收藏版塔罗卡册，避开中国水墨、梅花和八卦。",
+    "hint": "只需描述构图和风格，插件会附上结构化绘图参考。清空恢复默认。"
+  },
+  "ai_prompt_qimen": {
+    "description": "奇门遁甲绘图提示词",
+    "type": "text",
+    "default": "设计竖版 3:4 奇门遁甲九宫结果卡，深青玉绿、青铜金、墨青与冷银色，背景用青铜器、墨玉、北斗星图和细密罗盘刻度。顶部用古篆隶书写「奇门遁甲」，副标题「天地为盘 · 九宫演机」，信息栏标出时刻、遁局、值符和值使。中央为严格对齐的 3×3 九宫阵盘，按 grid_order 排列宫位，用金属细线分隔。每宫依据数据展示九星、八门、八神和地盘干，中宫点缀太极。阵盘外围环绕古代罗盘与方位刻度。宫内用规整的宋体或等宽字，底部点缀青铜印记。避开塔罗牌、粉色和卷轴布局。",
+    "hint": "只需描述构图和风格，插件会附上结构化绘图参考。清空恢复默认。"
+  },
+  "ai_prompt_daily": {
+    "description": "每日运势绘图提示词",
+    "type": "text",
+    "default": "设计竖版 3:4 每日运势结果卡，现代日系杂志与东方手账，奶油白、蜜桃粉、浅杏金与淡薰衣草紫。背景用柔和晨曦、云霞、湖光、樱花花瓣，搭配半透明圆角卡片和精细金线。顶部以柔和手写体写「今日运势」，在日出樱花插画旁展示本次日期。中部三栏分别为「塔罗指引」「今日灵签」「周易卦象」，用小型塔罗、朱砂签筒和金色卦象做图标，下方用星星和图标呈现趣味幸运指数、颜色、数字和宜忌，底部花笺以「今日寄语」展示提供的综合建议。正文思源黑体，数字用精致衬线体。画面像高端日历的晨间日签，避开黑金、青铜罗盘、寺庙卷轴与深色背景。",
+    "hint": "只需描述构图和风格，插件会附上结构化绘图参考。清空恢复默认。"
   }
 }

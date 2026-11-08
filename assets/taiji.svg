@@ -1,0 +1,16 @@
+<svg viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs><radialGradient id="g"><stop stop-color="#554852"/><stop offset=".75" stop-color="#28242b"/><stop offset="1" stop-color="#1a1923"/></radialGradient></defs>
+<circle cx="85" cy="85" r="52" fill="url(#g)" stroke="#96785a" stroke-width="1.2" opacity=".76"/>
+<path d="M85 33 A52 52 0 0 0 85 137 A26 26 0 0 0 85 85 A26 26 0 0 1 85 33Z" fill="#91878b" opacity=".18"/>
+<circle cx="85" cy="59" r="7" fill="#1f1d23" opacity=".9"/><circle cx="85" cy="111" r="7" fill="#8d8292" opacity=".35"/>
+<g stroke="#8a7360" stroke-width="2.6" opacity=".58">
+  <g transform="translate(85 12)"><path d="M-14 -4H14 M-14 0H14 M-14 4H14"/></g>
+  <g transform="translate(85 158)"><path d="M-14 -4H14 M-14 0H-2 M2 0H14 M-14 4H14"/></g>
+  <g transform="translate(158 85) rotate(90)"><path d="M-14 -4H-2 M2 -4H14 M-14 0H14 M-14 4H-2 M2 4H14"/></g>
+  <g transform="translate(12 85) rotate(90)"><path d="M-14 -4H-2 M2 -4H14 M-14 0H-2 M2 0H14 M-14 4H-2 M2 4H14"/></g>
+  <g transform="translate(136 33) rotate(45)"><path d="M-11 -4H11 M-11 0H-2 M2 0H11 M-11 4H11"/></g>
+  <g transform="translate(34 33) rotate(-45)"><path d="M-11 -4H-2 M2 -4H11 M-11 0H11 M-11 4H11"/></g>
+  <g transform="translate(136 136) rotate(-45)"><path d="M-11 -4H11 M-11 0H11 M-11 4H-2 M2 4H11"/></g>
+  <g transform="translate(34 136) rotate(45)"><path d="M-11 -4H-2 M2 -4H11 M-11 0H-2 M2 0H11 M-11 4H11"/></g>
+</g>
+</svg>

@@ -1,0 +1,36 @@
+.page.tarot{background:radial-gradient(ellipse at 55% 18%,#39214f 0%,#1d1535 44%,#0d1226 100%);color:#efe1f2;padding:29px 36px 20px;font-family:'Noto Serif CJK SC','Times New Roman',serif}
+.tarot .frame-outer{inset:11px;border:1.5px solid #9e7fba;border-radius:180px 180px 17px 17px/80px 80px 17px 17px;box-shadow:inset 0 0 0 8px rgba(172,127,199,.06)}
+.tarot .frame-inner{inset:18px;border:1px solid rgba(195,154,213,.32);border-radius:160px 160px 14px 14px/70px 70px 14px 14px}
+.tarot .art-layer svg{position:absolute;top:0;left:0;width:100%;height:100%;opacity:.95}
+.tarot header{padding-top:38px}
+.tarot header .preface{font-family:'Cinzel','Times New Roman','Liberation Serif',serif;color:#d8c4ea;letter-spacing:7px;font-size:13px}
+.tarot header h1{font-family:'Noto Serif CJK SC',serif;font-size:69px;letter-spacing:9px;font-weight:600;color:#f9e9ff;text-shadow:0 0 21px rgba(225,166,237,.31)}
+.tarot header .subheading{color:#d7b4e5;font-size:18px;letter-spacing:4px}
+.tarot>main{padding:18px 18px 12px}
+.tarot .tarot-intro{text-align:center;margin:8px 15px 20px;border-top:1px solid #815e91;border-bottom:1px solid #815e91;padding:9px}
+.tarot .tarot-intro .labeled{display:inline-flex;align-items:baseline;margin:3px 10px;font-size:16px}
+.tarot .tarot-intro .label{color:#be9cc4}
+.tarot .tarot-intro .value{flex:0 1 auto}
+.tarot .tarot-spread{display:flex;align-items:flex-start;justify-content:center;gap:16px;margin:12px 0 18px}
+.tarot .arcana{min-width:0;flex:1;max-width:250px}
+.tarot .tarot-spread.single .arcana{flex:0 0 330px;max-width:330px}
+.tarot .arcana-outer{padding:6px;border-radius:128px 128px 12px 12px/110px 110px 12px 12px;background:linear-gradient(125deg,#7960a7,#dfc58e,#886eaf,#e4c69f,#7657a0);box-shadow:0 7px 30px rgba(0,0,0,.45)}
+.tarot .arcana-frame{border-radius:125px 125px 9px 9px/108px 108px 9px 9px;background:linear-gradient(165deg,#392151,#1d1537 64%,#35214f);padding:27px 10px 19px;text-align:center;border:2px solid rgba(255,220,172,.56);min-height:337px}
+.tarot .arcana-number{font-family:'Times New Roman',serif;color:#ebcdad;letter-spacing:3px;font-size:12px}
+.tarot .arcana-picture{width:100%;height:205px;display:flex;justify-content:center;align-items:center;position:relative;margin:3px auto}
+.tarot .arcana-picture svg{width:100%;height:100%;max-width:300px}
+.tarot .arcana-name{font-weight:700;letter-spacing:1px;line-height:1.3;font-size:18px;color:#ffe1b4;overflow-wrap:anywhere}
+.tarot .arcana-state{color:#c6b2d3;font-size:12px;letter-spacing:3px;margin-top:6px}
+.tarot .tarot-spread.single .arcana-frame{min-height:414px;padding-top:32px}
+.tarot .tarot-spread.single .arcana-picture{height:260px}
+.tarot .tarot-spread.single .arcana-name{font-size:24px}
+.tarot .tarot-reading-heading{text-align:center;color:#f5d5a8;font-size:21px;font-weight:500;letter-spacing:4px;margin:25px 0 14px}
+.tarot .tarot-meanings{display:grid;grid-template-columns:1fr;gap:10px}
+.tarot .tarot-interpret{background:rgba(226,198,248,.055);border-left:2px solid #ae88c4;padding:10px 16px;border-radius:3px}
+.tarot .reading-title{color:#e4c4ea;font-size:18px;font-weight:700}
+.tarot .reading-title span{float:right;color:#f1cc9e;font-size:15px}
+.tarot .tarot-interpret p{margin:7px 0 3px;line-height:1.65;font-size:16px}
+.tarot .ai-block{border:1px solid #9370a5;background:rgba(183,130,214,.075);border-radius:12px;color:#f5e7ff}
+.tarot .ai-head{color:#e6c0ff}
+.tarot .tarot-closing{font-family:'Times New Roman',serif;letter-spacing:8px;text-align:center;color:#ba99c9;font-size:15px;margin-top:25px}
+.tarot footer{color:#d9c1e2;letter-spacing:4px}

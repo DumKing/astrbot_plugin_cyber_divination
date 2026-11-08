@@ -1,0 +1,39 @@
+.page.daily{background:linear-gradient(170deg,#fffbf0 0%,#fff0ea 43%,#f8e8e2 80%,#f8efe8 100%);color:#654744;padding:33px 43px 28px;font-family:'Noto Sans CJK SC','Microsoft YaHei',sans-serif}
+.daily .frame-outer{inset:19px;border:2px solid rgba(225,161,146,.55);border-radius:38px;box-shadow:inset 0 0 0 6px rgba(255,255,255,.32)}
+.daily .frame-inner{inset:31px;border:1px dashed rgba(222,174,164,.57);border-radius:30px}
+.daily .art-layer svg{position:absolute;top:0;left:0;width:100%;height:100%;opacity:1}
+.daily header{padding-top:12px}
+.daily header .preface{font-size:14px;font-family:'Liberation Serif',serif;color:#b46e70;letter-spacing:5px;font-style:italic}
+.daily header h1{font-family:'AR PL KaitiM GB','Noto Serif CJK SC',serif;color:#ab5d61;font-size:74px;font-weight:700;letter-spacing:8px}
+.daily header .subheading{color:#b68b7b;font-family:'Liberation Serif',serif;font-size:14px;letter-spacing:6px;margin-top:6px}
+.daily>main{margin:13px auto 0;padding:6px 19px 10px}
+.daily .daily-date{display:flex;justify-content:space-between;align-items:baseline;color:#a75660;border-bottom:1px solid #e5b6ae;padding-bottom:12px}
+.daily .daily-date .day{font-family:'Times New Roman',serif;font-size:56px;line-height:1;letter-spacing:2px}
+.daily .daily-date .weekday{font-size:16px;letter-spacing:2px}
+.daily .daily-salute{text-align:center;font-family:'AR PL KaitiM GB','Noto Serif CJK SC',serif;color:#9c6b71;font-size:25px;margin:18px 0 0;letter-spacing:3px}
+.daily .daily-user{text-align:center;font-size:14px;color:#af8a8a;margin:6px 0 17px}
+.daily .daily-trio{display:flex;flex-direction:column;gap:16px;margin-top:20px}
+.daily .fortune-block{position:relative;background:rgba(255,255,255,.83);border-radius:22px;padding:21px 25px 24px 100px;min-height:152px;box-shadow:0 7px 24px rgba(151,111,122,.06);border:1px solid #f4e0db;overflow:hidden}
+.daily .fortune-block:before{content:'';position:absolute;top:0;bottom:0;left:0;width:77px;background:var(--tile)}
+.daily .fortune-block.tarot{--tile:#eee1f6;border-color:#e8d7ed}.daily .fortune-block.ling{--tile:#fbe3df;border-color:#f3d5d0}.daily .fortune-block.gua{--tile:#e8f2e9;border-color:#dceada}
+.daily .fortune-icon{position:absolute;left:13px;top:31px;border:2px solid rgba(115,93,116,.2);height:50px;width:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif CJK SC',serif;color:#a46d91;font-size:30px}
+.daily .fortune-block.ling .fortune-icon{color:#bf7e77}.daily .fortune-block.gua .fortune-icon{color:#72947b}
+.daily .fortune-title{font-size:22px;color:#845765;letter-spacing:1px;font-weight:700}
+.daily .fortune-title small{margin-left:10px;color:#b9a2ad;font-size:11px;letter-spacing:2px;font-weight:400}
+.daily .fortune-result{font-size:18px;color:#68535f;margin:7px 0}
+.daily .fortune-result em{font-size:13px;color:#a48085;font-style:normal;margin-left:8px}
+.daily .fortune-block p{line-height:1.7;font-size:16px;margin:0;color:#6f5b5b}
+.daily .today-note{margin-top:22px;padding:19px 24px;border:1px solid #e1bab4;border-radius:18px;background:linear-gradient(90deg,#fffaf4,#fff4ee);font-size:19px;color:#965965;line-height:1.6}
+.daily .today-label{font-size:14px;color:#b88381;letter-spacing:2px;margin-bottom:7px}
+.daily .ai-block{background:rgba(255,255,255,.65);border:1px solid #eac8c4;border-radius:20px;color:#654c53}
+.daily .ai-head{color:#b27786}
+.daily footer{color:#ac7e78}
+
+/* 每日卡片中的附加幸运指标仅为趣味化内容 */
+.daily .daily-lucky{margin-top:19px;padding:13px 19px 15px;background:rgba(255,254,249,.77);border:1px solid #e9c9be;border-radius:18px;color:#996a73}
+.daily .lucky-head{font-size:15px;letter-spacing:2px;color:#b37681;margin-bottom:11px}
+.daily .lucky-row{display:flex;justify-content:space-around;gap:12px;border-top:1px dashed rgba(181,130,138,.24);padding:9px 0 2px;font-size:16px;text-align:center}
+.daily .lucky-row.last{margin-top:6px}
+.daily .lucky-row span{flex:1}
+.daily .lucky-row b{font-size:12px;color:#c29192;margin-right:9px;font-weight:500;letter-spacing:1px}
+.daily .lucky-row i{color:#cf9591;font-family:'Times New Roman',serif;letter-spacing:2px;font-style:normal}

@@ -1,15 +1,8 @@
 """核心逻辑测试：不依赖 AstrBot 运行时。"""
-import os
 import random
-import sys
 from datetime import date, datetime, timedelta
 
-sys.path.insert(
-    0,
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-)
-
-from cyber_divination.core import daily, ganzhi, lingqian, qimen, render, tarot, zhouyi
+from core import daily, ganzhi, lingqian, qimen, render, tarot, zhouyi
 
 
 def test_hexagram_grid_complete():
