@@ -13,7 +13,7 @@ from PIL import Image
 
 from core import daily, qimen, tarot, zhouyi
 from core.image_api import ImageAPIError, build_prompt, generate_image
-from core.image_styles import DEFAULT_STYLES
+from core.image_styles import DEFAULT_STYLES, resolve_style
 from core.keywords import match_keyword
 
 
@@ -136,3 +136,8 @@ class ImageAPITests(unittest.IsolatedAsyncioTestCase):
         self.session.post.return_value.__aenter__ = AsyncMock(side_effect=stall)
         with self.assertRaises(asyncio.TimeoutError):
             await self.generate(timeout=1)
+
+
+def test_prompt_selection_preserves_custom_text():
+    assert resolve_style("zhouyi", "") == DEFAULT_STYLES["zhouyi"]
+    assert resolve_style("zhouyi", "自定义版式") == "自定义版式"

@@ -8,7 +8,7 @@ from datetime import date, datetime
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image, Plain
+from astrbot.api.message_components import Image
 from astrbot.api.star import Context, Star
 
 from .core import daily, lingqian, qimen, tarot, zhouyi
@@ -200,7 +200,7 @@ class CyberDivination(Star):
         if self._cfg("image_mode", "html") == "ai":
             try:
                 image = await self._generate_ai_card(title, card_data or {}, zhouyi_cast)
-                yield event.chain_result([Image.fromBytes(image), Plain(body)])
+                yield event.chain_result([Image.fromBytes(image)])
                 return
             except Exception as exc:
                 logger.warning(f"cyber_divination API 生图失败: {type(exc).__name__}")
@@ -236,11 +236,11 @@ class CyberDivination(Star):
 
     async def _generate_ai_card(self, title: str, card_data: dict, cast) -> bytes:
         from .core.image_api import build_prompt, generate_image
-        from .core.image_styles import DEFAULT_STYLES
+        from .core.image_styles import resolve_style
 
         kind = kind_for(title)
         style = str(self._cfg(f"ai_prompt_{kind}", "") or "").strip()
-        prompt = build_prompt(style or DEFAULT_STYLES[kind], kind, title, card_data, cast)
+        prompt = build_prompt(resolve_style(kind, style), kind, title, card_data, cast)
         return await generate_image(
             prompt,
             endpoint=str(self._cfg("ai_image_endpoint", "") or "").strip(),
