@@ -1,5 +1,9 @@
 # 更新日志
 
+## 0.1.0 · 2026-11-08
+
+- 版本号由 0.0.1 升至 0.1.0。
+
 ## 0.0.1 · 2026-11-08
 
 - 使用独立的 AstrBot 插件标识 `DumKing/astrbot_plugin_cyber_divination_cards`，保留上游署名和 MIT 许可。
