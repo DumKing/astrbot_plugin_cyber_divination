@@ -37,7 +37,6 @@ def load_plugin():
         "astrbot.api.star": SimpleNamespace(Context=object, Star=object),
         "astrbot.api.message_components": SimpleNamespace(
             Image=SimpleNamespace(fromBytes=lambda data: ("image", data)),
-            Plain=lambda text: ("plain", text),
         ),
     }
     with patch.dict(sys.modules, modules):
@@ -68,6 +67,6 @@ def test_output_modes_and_fallback():
     assert asyncio.run(output({})) == ([("plain", "实际占卜原文")], 0, 0)
     assert asyncio.run(output({"use_image": True})) == ([("html", "rendered")], 0, 1)
     ai = {"use_image": True, "image_mode": "ai"}
-    assert asyncio.run(output(ai)) == ([[("image", b"image"), ("plain", "实际占卜原文")]], 1, 0)
+    assert asyncio.run(output(ai)) == ([[("image", b"image")]], 1, 0)
     assert asyncio.run(output(ai, image=TimeoutError())) == ([("html", "rendered")], 1, 1)
     assert asyncio.run(output(ai, image=TimeoutError(), html=None)) == ([("plain", "实际占卜原文")], 1, 1)
