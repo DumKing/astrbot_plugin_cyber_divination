@@ -5,6 +5,7 @@ import asyncio
 import base64
 import json
 from io import BytesIO
+from pathlib import Path
 
 import aiohttp
 from PIL import Image
@@ -91,16 +92,22 @@ async def _read(response: aiohttp.ClientResponse, limit: int) -> bytes:
     return bytes(data)
 
 
-def _validate_image(data: bytes) -> bytes:
+def _validate_image(data: bytes, formats: tuple[str, ...] = IMAGE_FORMATS) -> bytes:
     if not data or len(data) > MAX_IMAGE_BYTES:
         raise ImageAPIError("图片为空或超过 10 MiB")
-    with Image.open(BytesIO(data), formats=IMAGE_FORMATS) as image:
+    with Image.open(BytesIO(data), formats=formats) as image:
         if image.width * image.height > 16_000_000 or getattr(image, "is_animated", False):
             raise ImageAPIError("图片尺寸过大或包含多帧")
         image.verify()
-    with Image.open(BytesIO(data), formats=IMAGE_FORMATS) as image:
+    with Image.open(BytesIO(data), formats=formats) as image:
         image.load()
     return data
+
+
+def _read_reference(path: Path) -> bytes:
+    with path.open("rb") as file:
+        data = file.read(MAX_IMAGE_BYTES + 1)
+    return _validate_image(data, ("JPEG",))
 
 
 async def generate_image(
@@ -113,6 +120,8 @@ async def generate_image(
     size: str = "",
     download_origin: str = "",
     timeout: int = 180,
+    reference: Path | None = None,
+    reference_field: str = "image[]",
 ) -> bytes:
     """Return validated image bytes without forwarding credentials to image URLs."""
     url = _http_url(endpoint)
@@ -135,21 +144,33 @@ async def generate_image(
         payload["size"] = size
 
     return await asyncio.wait_for(
-        _request_image(url, origins, payload, headers),
+        _request_image(url, origins, payload, headers, reference, reference_field),
         timeout=max(1, min(timeout, 600)),
     )
 
 
 async def _request_image(
     url: URL, origins: set[URL], payload: dict, headers: dict,
+    reference: Path | None, reference_field: str,
 ) -> bytes:
+    request_body = {"json": payload}
+    if reference is not None:
+        if reference_field not in {"image[]", "image"}:
+            raise ImageAPIError("参考图字段须为 image[] 或 image")
+        data = await asyncio.to_thread(_read_reference, reference)
+        form = aiohttp.FormData()
+        for key, value in payload.items():
+            form.add_field(key, str(value))
+        form.add_field(reference_field, data, filename=reference.name, content_type="image/jpeg")
+        request_body = {"data": form}
+
     async with aiohttp.ClientSession(
         cookie_jar=aiohttp.DummyCookieJar(),
         trust_env=False,
         timeout=aiohttp.ClientTimeout(total=None),
     ) as session:
         async with session.post(
-            url, json=payload, headers=headers, allow_redirects=False,
+            url, headers=headers, allow_redirects=False, **request_body,
         ) as response:
             if response.content_type in {"image/png", "image/jpeg", "image/webp"}:
                 return await asyncio.to_thread(_validate_image, await _read(response, MAX_IMAGE_BYTES))

@@ -4,3 +4,6 @@ __pycache__/
 .ruff_cache/
 .venv/
 *.egg-info/
+
+# User-supplied visual references are packaged locally.
+/references/*.jpg
