@@ -13,6 +13,7 @@ import re
 from typing import Any
 
 from .daily import HELP_COMMANDS, HELP_NUDGE, lucky_details
+from .extended import METHODS
 
 ROOT = Path(__file__).resolve().parent.parent
 CARD_KINDS = {"zhouyi", "lingqian", "tarot", "qimen", "daily"}
@@ -28,6 +29,9 @@ def asset(filename: str) -> str:
 
 
 def kind_for(title: str) -> str:
+    for key, (name, _, _, _) in METHODS.items():
+        if title == name:
+            return key
     for key, needle in (
         ("zhouyi", ("周易", "六爻")),
         ("lingqian", ("灵签",)),
@@ -324,6 +328,20 @@ def daily_body(lines: list[str], ai: str, data: dict, sender: str) -> str:
         '<article class="fortune-block gua"><div class="fortune-icon">☰</div><div class="fortune-title">周易卦象 <small>I CHING</small></div>'
         f'<div class="fortune-result">{e(cast.name)}卦 <em>{e(cast.upper)}上 · {e(cast.lower)}下</em></div><p>{e(cast.jie)}{e(move)}</p></article>'
     )
+    panels = []
+    for panel in data.get("daily_panels", ()):
+        fields = "".join(
+            f'<div><dt>{e(label)}</dt><dd>{e(value)}</dd></div>'
+            for label, value in panel["rows"]
+        )
+        note = panel.get("ai_note")
+        note_html = (
+            f'<aside class="daily-panel-ai"><b>AI 简解</b><p>{e(note)}</p></aside>' if note else ""
+        )
+        panels.append(
+            f'<section class="daily-panel"><h2>{e(panel["title"])}</h2>'
+            f'<dl>{fields}</dl>{note_html}</section>'
+        )
     help_entries = ''.join(
         f'<li><b>{e(command)}</b><span>{e(description)}</span></li>'
         for command, description in HELP_COMMANDS
@@ -335,6 +353,7 @@ def daily_body(lines: list[str], ai: str, data: dict, sender: str) -> str:
             + lucky_html
             + '<div class="today-note"><div class="today-label">✦ 今日寄语</div><div>' + e(advice or '顺其自然，过好当下。') + '</div></div>'
             + ai_block(ai,'AI 今日解读')
+            + (f'<div class="daily-panels">{"".join(panels)}</div>' if panels else "")
             + '<section class="daily-help"><h2>赛博占卜 · 使用说明</h2>'
             + f'<ul>{help_entries}</ul></section>'
             + '<p class="safety">每日结果当天固定 · 仅供娱乐参考</p>')
@@ -360,6 +379,22 @@ def build_card_html(
     kind = kind_for(title)
     data = card_data or {}
     base, ai = split_ai(body_lines)
+    if kind in METHODS:
+        fields = "".join(
+            f'<li><b>{e(label)}</b><span>{e(value)}</span></li>'
+            for label, value in data.get("extended_rows", ())
+        )
+        body = (labeled("所问之事", question) + f'<ul class="method-fields">{fields}</ul>'
+                + ai_block(ai))
+        css = asset("templates/base.css") + "\n" + asset("templates/extended.css")
+        return (
+            '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=900">'
+            f'<style>{css}</style></head><body><div class="page extended {kind}">'
+            f'<header><h1>{e(title)}</h1><p>{e(subtitle)}</p></header>'
+            f'<main>{body}</main><footer>✦　{e(footer or "仅供娱乐")}　✦</footer>'
+            '</div></body></html>'
+        )
     if kind == 'zhouyi':
         body = zhouyi_body(base, ai, zhouyi_cast or data.get('cast'), question, sender)
     elif kind == 'lingqian':

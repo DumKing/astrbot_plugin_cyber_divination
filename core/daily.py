@@ -7,17 +7,28 @@ from datetime import date
 
 from . import lingqian, tarot, zhouyi
 from .ganzhi import day_ganzhi_index
+from .extended import METHODS
 
 HELP_NUDGE = "不知道如何占卜？请发送 占卜帮助 查看详细命令"
+_EXTENDED_HELP = {
+    "xiaoliuren": "按月、日、时起六宫掌诀",
+    "meihua": "报数或按时间起本卦、互卦、变卦",
+    "lenormand": "单张或三张，按顺序看牌面组合",
+    "daliuren": "天地盘、四课、三传与天将",
+    "taiyi": "金镜式排局，查看主算、客算与八门",
+    "bazi": "公历出生时间排年、月、日、时四柱",
+    "ziwei": "公历出生时间与性别排十二宫",
+}
 HELP_COMMANDS = (
     ("/占卜 六爻 [所问之事]", "三枚铜钱起卦，含六神、本卦与变卦"),
     ("/占卜 灵签 [所问之事]", "观音灵签一百签"),
     ("/占卜 塔罗 [单张|三张] [所问之事]", "单张指引或过去、现在、未来三张牌阵"),
     ("/占卜 塔罗 查 [关键词]", "查询牌意，例如 /占卜 塔罗 查 星星"),
     ("/占卜 奇门 [所问之事]", "默认按当前时刻起局，可在问题前指定 YYYY-MM-DD HH:MM"),
-    ("/占卜 每日", "塔罗、灵签、周易三合一，当天固定、明日刷新"),
+    ("/占卜 每日 [出生日期 时间 男|女]", "今日运势长图；出生信息用于八字和紫微"),
     ("/占卜 历史 [清除]", "查看或清除本会话占卜记录"),
     ("/占卜 帮助", "查看完整使用说明"),
+    *((f"/占卜 {method[2]}", _EXTENDED_HELP[kind]) for kind, method in METHODS.items()),
 )
 
 # 按灵签吉凶给出一句综合建议（确定性）

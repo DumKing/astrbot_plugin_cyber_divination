@@ -48,17 +48,31 @@ def build_prompt(style: str, kind: str, title: str, data: dict, cast=None) -> st
     elif kind == "daily" and (draw := data.get("daily")):
         name, reversed_, meaning = draw["card"]
         number, grade, poem, explain = draw["lingqian"]
+        cast = draw["cast"]
         context = {
             "date": draw["date"].isoformat(),
             "weekday": "星期" + "一二三四五六日"[draw["date"].weekday()],
             "tarot": {"name": name, "reversed": reversed_, "meaning": meaning},
             "lot": {"number": number, "grade": grade, "poem": poem, "explain": explain},
-            "hexagram": draw["cast"].name,
-            "lines_bottom_to_top": draw["cast"].lines,
-            "hexagram_interpretation": draw["cast"].jie,
+            "hexagram": cast.name,
+            "upper_trigram": cast.upper,
+            "lower_trigram": cast.lower,
+            "hexagram_text": cast.guaci,
+            "hexagram_interpretation": cast.jie,
+            "lines_bottom_to_top": cast.lines,
+            "six_gods_bottom_to_top": cast.gods,
+            "moving_lines": cast.moving,
+            "changed_hexagram": cast.changed_name,
+            "changed_hexagram_text": cast.changed_guaci,
+            "changed_hexagram_interpretation": cast.changed_jie,
             "advice": daily.grade_advice(grade),
             "lucky_details": daily.lucky_details(draw["date"], data.get("uid", ""), grade),
+            "daily_panels": data.get("daily_panels", []),
         }
+    elif "extended_rows" in data:
+        context = {"results": [{"label": k, "value": v} for k, v in data["extended_rows"]]}
+        if kind == "meihua" and "hexagram_lines" in data:
+            context["三卦爻线（上爻至初爻）"] = data["hexagram_lines"]
     else:
         context = {}
     question_hint = ""
@@ -98,11 +112,13 @@ async def _read(response: aiohttp.ClientResponse, limit: int) -> bytes:
     return bytes(data)
 
 
-def _validate_image(data: bytes, formats: tuple[str, ...] = IMAGE_FORMATS) -> bytes:
+def _validate_image(
+    data: bytes, formats: tuple[str, ...] = IMAGE_FORMATS, max_pixels: int = 16_000_000,
+) -> bytes:
     if not data or len(data) > MAX_IMAGE_BYTES:
         raise ImageAPIError("图片为空或超过 10 MiB")
     with Image.open(BytesIO(data), formats=formats) as image:
-        if image.width * image.height > 16_000_000 or getattr(image, "is_animated", False):
+        if image.width * image.height > max_pixels or getattr(image, "is_animated", False):
             raise ImageAPIError("图片尺寸过大或包含多帧")
         image.verify()
     with Image.open(BytesIO(data), formats=formats) as image:
@@ -124,6 +140,7 @@ async def generate_image(
     api_key: str = "",
     auth_header: str = "bearer",
     size: str = "",
+    output_format: str = "",
     download_origin: str = "",
     timeout: int = 180,
     reference: Path | None = None,
@@ -145,19 +162,22 @@ async def generate_image(
             headers["api-key"] = api_key
         else:
             headers["Authorization"] = f"Bearer {api_key}"
-    payload = {"model": model, "prompt": prompt, "n": 1}
+    payload = {"model": model, "prompt": prompt, "n": 1, "quality": "high"}
     if size:
         payload["size"] = size
+    if output_format:
+        payload["output_format"] = output_format
+    max_pixels = 3840 * 21333 if output_format == "png" and size == "3840x21333" else 16_000_000
 
     return await asyncio.wait_for(
-        _request_image(url, origins, payload, headers, reference, reference_field),
+        _request_image(url, origins, payload, headers, reference, reference_field, max_pixels),
         timeout=max(1, min(timeout, 600)),
     )
 
 
 async def _request_image(
     url: URL, origins: set[URL], payload: dict, headers: dict,
-    reference: Path | None, reference_field: str,
+    reference: Path | None, reference_field: str, max_pixels: int,
 ) -> bytes:
     request_body = {"json": payload}
     if reference is not None:
@@ -179,7 +199,9 @@ async def _request_image(
             url, headers=headers, allow_redirects=False, **request_body,
         ) as response:
             if response.content_type in {"image/png", "image/jpeg", "image/webp"}:
-                return await asyncio.to_thread(_validate_image, await _read(response, MAX_IMAGE_BYTES))
+                return await asyncio.to_thread(
+                    _validate_image, await _read(response, MAX_IMAGE_BYTES), max_pixels=max_pixels,
+                )
             result = json.loads(await _read(response, MAX_JSON_BYTES))
         try:
             item = result["data"][0]
@@ -198,4 +220,4 @@ async def _request_image(
                 data = await _read(response, MAX_IMAGE_BYTES)
         else:
             raise ImageAPIError("响应未返回图片")
-    return await asyncio.to_thread(_validate_image, data)
+    return await asyncio.to_thread(_validate_image, data, max_pixels=max_pixels)

@@ -89,7 +89,9 @@ class ImageAPITests(unittest.IsolatedAsyncioTestCase):
         self.respond("post", {"data": [{"b64_json": base64.b64encode(self.png).decode()}]})
         self.assertEqual(await self.generate(api_key="key", size="1024x1536"), self.png)
         args = self.session.post.call_args.kwargs
-        self.assertEqual(args["json"], {"model": "test", "prompt": "提示", "n": 1, "size": "1024x1536"})
+        self.assertEqual(args["json"], {
+            "model": "test", "prompt": "提示", "n": 1, "quality": "high", "size": "1024x1536",
+        })
         self.assertEqual(args["headers"], {"Authorization": "Bearer key"})
         self.assertFalse(args["allow_redirects"])
 
@@ -124,6 +126,7 @@ class ImageAPITests(unittest.IsolatedAsyncioTestCase):
                 await request["data"]().write(encoded)
                 self.assertIn(f'name="{field}"; filename="zhouyi.jpg"'.encode(), encoded.data)
                 self.assertIn(b"image/jpeg", encoded.data)
+                self.assertRegex(encoded.data, rb'name="quality"\r\n(?:[^\r\n]+\r\n)*\r\nhigh\r\n')
                 self.assertIn("提示".encode(), encoded.data)
                 self.assertIn(path.read_bytes(), encoded.data)
 
@@ -179,9 +182,11 @@ def test_prompt_selection_preserves_custom_text():
 
 
 
-def test_all_five_references_are_bundled():
+def test_all_twelve_references_are_bundled():
+    from core.extended import METHODS
+
     directory = Path(__file__).parents[1] / "references"
-    for kind in DEFAULT_STYLES:
+    for kind in (*DEFAULT_STYLES, *METHODS):
         assert _read_reference(directory / f"{kind}.jpg")
 
 
@@ -191,3 +196,25 @@ def test_prompt_includes_the_question_when_provided():
     payload = json.loads(prompt.split("构图参考数据：", 1)[1].splitlines()[0])
     assert payload["question"] == "今日财运"
     assert "将 question 原文标为「所问之事」" in prompt
+
+
+def test_xiaoliuren_style_uses_current_reading_and_upgrades_old_default():
+    old = (
+        "制作竖版 3:4 的「小六壬」结果卡，视觉采用朱砂、竹简与六宫掌诀。"
+        "依次展示结构化结果的各个标签和数值，保留中文、牌序、宫位与星名。"
+        "用清晰的文字层级与充足留白排版；未提供的字段省略，不能补造结果。"
+        "底部标明「仅供娱乐」。"
+    )
+    schema = json.loads((Path(__file__).parents[1] / "_conf_schema.json").read_text())
+    style = resolve_style("xiaoliuren", old)
+    assert style == schema["ai_prompt_xiaoliuren"]["default"]
+    assert resolve_style("xiaoliuren", "自定义版式") == "自定义版式"
+    prompt = build_prompt(style, "xiaoliuren", "小六壬", {
+        "extended_rows": [("时宫", "留连"), ("趣味指引", "等一等")],
+        "question": "今天适合出门吗？",
+    })
+    assert "仅高亮本次时宫" in prompt
+    assert "今天怎么办？" not in prompt
+    payload = json.loads(prompt.split("构图参考数据：", 1)[1].splitlines()[0])
+    assert payload["question"] == "今天适合出门吗？"
+    assert payload["results"][0] == {"label": "时宫", "value": "留连"}

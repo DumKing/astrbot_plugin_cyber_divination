@@ -39,7 +39,17 @@
 .daily .fortune-title small{display:none}
 .daily .daily-help{margin-top:22px;padding:12px 18px 17px;border:1px solid #d9a780;border-radius:20px;background:rgba(255,248,238,.93)}
 .daily .daily-help h2{text-align:center;color:#813a55;font-size:22px;margin:0 0 12px}
-.daily .daily-help ul{display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,auto);grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 16px;list-style:none;margin:0;padding:0}
+.daily .daily-help ul{display:grid;grid-auto-flow:column;grid-template-rows:repeat(8,auto);grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 16px;list-style:none;margin:0;padding:0}
 .daily .daily-help li{border-top:1px solid #ecd3c3;padding:6px 0 0;line-height:1.4}
 .daily .daily-help li b{display:block;color:#813a55;font-size:14px}
 .daily .daily-help li span{display:block;font-size:13px}
+.daily .daily-panels{display:grid;gap:14px;margin-top:22px}
+.daily .daily-panel{padding:16px 20px;background:#fff9f2;border:1px solid #ddb6aa;border-radius:18px}
+.daily .daily-panel h2{font:700 26px 'Noto Serif CJK SC',serif;margin:0 0 10px;color:#813a55}
+.daily .daily-panel dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin:0}
+.daily .daily-panel dl div{padding:7px 0;border-top:1px solid #ecd3c3;overflow-wrap:anywhere}
+.daily .daily-panel dt{font-size:14px;font-weight:700;color:#99606b}
+.daily .daily-panel dd{margin:3px 0 0;font-size:16px;line-height:1.5}
+.daily .daily-panel-ai{margin-top:12px;padding:10px 14px;border:1px solid #ebc5bc;border-radius:11px;background:#fff0ec}
+.daily .daily-panel-ai b{color:#813a55;font-size:14px}
+.daily .daily-panel-ai p{margin:4px 0 0;line-height:1.6;overflow-wrap:anywhere}

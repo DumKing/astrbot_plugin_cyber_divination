@@ -1,6 +1,8 @@
 """Route bare keywords to the existing command handlers."""
 from __future__ import annotations
 
+from .extended import METHODS
+
 DEFAULT_ALIASES = {
     "zhouyi": ("六爻", "周易", "摇卦"),
     "lingqian": ("求灵签", "观音灵签", "灵签"),
@@ -8,6 +10,7 @@ DEFAULT_ALIASES = {
     "qimen": ("奇门遁甲", "奇门"),
     "daily": ("每日运势", "今日运势"),
     "help": ("占卜帮助",),
+    **{key: method[1] for key, method in METHODS.items()},
 }
 
 

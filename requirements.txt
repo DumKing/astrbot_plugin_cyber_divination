@@ -1,3 +1,7 @@
 aiohttp>=3.9
 Pillow>=10
 yarl>=1.9
+lunar-python==1.4.9
+kinliuren==0.1.2.9
+iztro-py==0.5.0
+kintaiyi @ https://codeload.github.com/kentang2017/kintaiyi/zip/11f78555d5e77c81ac8af69d243a981c22934733

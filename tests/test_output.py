@@ -276,3 +276,180 @@ def test_clearing_history_evicts_only_the_senders_daily_image():
         plugin._generate_ai_card.assert_awaited_once()
 
     asyncio.run(verify())
+
+
+def test_daily_image_quota_counts_per_sender_and_bypasses_whitelisted_umo():
+    plugin = load_plugin()(None, {
+        "use_image": True, "image_mode": "ai", "ai_image_daily_limit": 1,
+        "ai_image_daily_limit_enabled": True,
+        "ai_image_umo_whitelist": ["onebot:GroupMessage:vip"],
+        "ai_image_umo_blacklist": ["onebot:GroupMessage:vip", "onebot:GroupMessage:blocked"],
+    })
+    records = {}
+
+    async def get(key, default):
+        return records.get(key, default)
+
+    async def put(key, value):
+        records[key] = value
+
+    plugin.get_kv_data = get
+    plugin.put_kv_data = put
+    plugin._generate_ai_card = AsyncMock(return_value=b"ai")
+    plugin.html_render = AsyncMock(return_value="html")
+
+    def event(sender, group):
+        return SimpleNamespace(
+            get_sender_id=lambda: sender,
+            unified_msg_origin=f"onebot:GroupMessage:{group}",
+            chain_result=lambda chain: chain,
+            image_result=lambda url: url,
+        )
+
+    async def finish(message, data=None):
+        return [result async for result in plugin._finish(
+            message, "每日运势" if data else "周易六爻", "", card_data=data,
+        )]
+
+    async def verify():
+        from core.daily import draw_daily
+
+        daily = {"daily": draw_daily(date.today(), "alice"), "uid": "alice"}
+        ai = [[("image", b"ai")]]
+        alice = event("alice", "regular")
+        assert await finish(alice, daily) == ai
+        assert await finish(alice, daily) == ai
+        assert await finish(event("alice", "another"), {}) == ["html"]
+        assert await finish(event("bob", "regular")) == ai
+        assert await finish(event("alice", "vip")) == ai
+        assert await finish(event("alice", "vip-extra")) == ["html"]
+        assert records["ai_image_quota_user_alice"]["count"] == 1
+        records["ai_image_quota_user_alice"]["date"] = "2000-01-01"
+        assert await finish(alice) == ai
+        assert plugin._generate_ai_card.await_count == 4
+
+        plugin.config["ai_image_umo_default"] = "unlimited"
+        plugin.config["ai_image_daily_limit"] = 0
+        blocked = event("alice", "blocked")
+        assert await finish(blocked, daily) == ["html"]
+        assert await finish(event("charlie", "blocked")) == ["html"]
+        assert "ai_image_quota_user_charlie" not in records
+        assert plugin._generate_ai_card.await_count == 4
+        assert await finish(event("alice", "another")) == ai
+        assert await finish(event("alice", "vip")) == ai
+        plugin.config["ai_image_daily_limit_enabled"] = False
+        assert await finish(blocked) == ai
+        assert records["ai_image_quota_user_alice"]["count"] == 1
+
+    asyncio.run(verify())
+
+
+def test_new_commands_reach_the_shared_reply_and_history_flow():
+    plugin = load_plugin()(None, {
+        "keyword_trigger_enabled": True, "keyword_trigger_mode": "starts_with",
+    })
+    plugin._record_history = AsyncMock()
+    extras = {}
+    event = SimpleNamespace(
+        unified_msg_origin="test:GroupMessage:group",
+        is_at_or_wake_command=False,
+        message_obj=SimpleNamespace(message_id="42"),
+        get_sender_id=lambda: "sender",
+        get_group_id=lambda: "group",
+        get_extra=extras.get,
+        set_extra=extras.__setitem__,
+        stop_event=Mock(),
+        plain_result=lambda text: SimpleNamespace(chain=[text]),
+    )
+    cases = (
+        ("小六壬 2026-11-09 12:00 工作", "小六壬"),
+        ("梅花 1 1 工作", "梅花易数"),
+        ("雷诺曼 单张 工作", "雷诺曼"),
+        ("大六壬 2026-11-09 12:00", "大六壬"),
+        ("太乙 时计 2026-11-09 12:00", "太乙神数"),
+        ("八字 2000-08-16 12:00", "八字排盘"),
+        ("紫微 2000-08-16 12:00 女", "紫微斗数"),
+    )
+
+    async def verify():
+        for message, title in cases:
+            event.get_message_str = lambda: message
+            result = [item async for item in plugin.keyword_trigger(event)]
+            assert len(result) == 1
+            assert result[0].chain[:2] == [("reply", "42"), ("at", "sender")]
+            assert title in result[0].chain[2]
+            assert plugin._record_history.await_args.args[1] == title
+        event.get_message_str = lambda: "/占卜 紫微 2000-02-30 12:00 女"
+        result = [item async for item in plugin.ziwei_cmd(event)]
+        assert "用法：/占卜 紫微" in result[0].chain[-1]
+        assert plugin._record_history.await_count == len(cases)
+
+    asyncio.run(verify())
+
+
+def test_daily_reads_only_the_triggering_users_qq_birth_profile():
+    plugin = load_plugin()(None, {})
+    action = AsyncMock(return_value={
+        "birthday_year": 2000, "birthday_month": 8, "birthday_day": 16,
+        "sex": "female", "nickname": "never returned",
+    })
+    event = SimpleNamespace(get_sender_id=lambda: "123", bot=SimpleNamespace(call_action=action))
+
+    async def verify():
+        assert await plugin._daily_birth_profile(event) == (date(2000, 8, 16), "女")
+        action.assert_awaited_once_with("get_stranger_info", user_id=123)
+        action.return_value = {"data": {"birthday_year": 0, "sex": "unknown"}}
+        assert await plugin._daily_birth_profile(event) == (None, "")
+        action.side_effect = RuntimeError("unsupported")
+        assert await plugin._daily_birth_profile(event) == (None, "")
+
+    asyncio.run(verify())
+
+
+def test_extended_ai_cards_use_their_own_reference_without_a_text_endpoint():
+    from core.extended import METHODS
+
+    plugin_type = load_plugin()
+    plugin = plugin_type(None, {
+        "use_image": True, "image_mode": "ai",
+        "ai_image_reference_endpoint": "https://example.test/v1/images/edits",
+    })
+    package = plugin_type.__module__.rsplit(".", 1)[0]
+    generate = AsyncMock(return_value=b"image")
+    event = SimpleNamespace(chain_result=lambda parts: parts)
+
+    async def verify():
+        for kind, (title, _, _, _) in METHODS.items():
+            result = [item async for item in plugin._finish(
+                event, title, "", card_data={"extended_rows": [("示例字段", "本次数据")]},
+            )]
+            assert result == [[("image", b"image")]], kind
+            call = generate.await_args
+            assert call.kwargs["endpoint"] == "https://example.test/v1/images/edits"
+            assert call.kwargs["reference"].name == f"{kind}.jpg"
+            assert call.kwargs["reference"].is_file()
+            assert "本次数据" in call.args[0]
+
+    from core.image_api import build_prompt
+    from core.image_styles import resolve_style
+
+    with patch.dict(sys.modules, {
+        f"{package}.core.image_api": SimpleNamespace(build_prompt=build_prompt, generate_image=generate),
+        f"{package}.core.image_styles": SimpleNamespace(resolve_style=resolve_style),
+    }):
+        asyncio.run(verify())
+
+
+def test_daily_ai_notes_keep_original_rows_and_skip_unmatched_notes():
+    plugin = load_plugin()(None, {})
+    plugin._llm_text = AsyncMock(return_value='{"小六壬":"先核实事实。","其他":"不采用"}')
+    original = [
+        {"title": "小六壬", "rows": [("时宫", "赤口")]},
+        {"title": "梅花易数", "rows": [("本卦", "履")]},
+    ]
+    updated = asyncio.run(plugin._daily_panel_notes(SimpleNamespace(), original))
+    assert updated == [{**original[0], "ai_note": "先核实事实。"}, original[1]]
+    assert "ai_note" not in original[0]
+    assert "赤口" in plugin._llm_text.await_args.args[2]
+    plugin._llm_text.return_value = "无效响应"
+    assert asyncio.run(plugin._daily_panel_notes(SimpleNamespace(), original)) == original

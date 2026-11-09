@@ -280,7 +280,7 @@ def make_pan(dt: datetime) -> dict:
     }
 
 
-def _display_palace(pan: dict, palace: int) -> str:
+def display_palace(pan: dict, palace: int) -> str:
     star = pan["tian_pan"][palace]
     door = pan["men_pan"][palace]
     god = pan["shen_pan"].get(palace, "-")
@@ -319,7 +319,7 @@ def format_pan(pan: dict, question: str = "", sender: str = "", note: str = "") 
     parts.append("")
     parts.append("九宫盘：")
     for palace in [4, 9, 2, 3, 5, 7, 8, 1, 6]:
-        parts.append(_display_palace(pan, palace))
+        parts.append(display_palace(pan, palace))
     parts.append("")
     parts.append("简断：")
     zhifu_palace = pan["shi_gan_palace"]
