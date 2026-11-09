@@ -10,16 +10,12 @@
 .daily .daily-date{display:flex;justify-content:space-between;align-items:baseline;color:#a75660;border-bottom:1px solid #e5b6ae;padding-bottom:12px}
 .daily .daily-date .day{font-family:'Times New Roman',serif;font-size:56px;line-height:1;letter-spacing:2px}
 .daily .daily-date .weekday{font-size:16px;letter-spacing:2px}
-.daily .daily-salute{text-align:center;font-family:'AR PL KaitiM GB','Noto Serif CJK SC',serif;color:#9c6b71;font-size:25px;margin:18px 0 0;letter-spacing:3px}
 .daily .daily-user{text-align:center;font-size:14px;color:#af8a8a;margin:6px 0 17px}
-.daily .daily-trio{display:flex;flex-direction:column;gap:16px;margin-top:20px}
-.daily .fortune-block{position:relative;background:rgba(255,255,255,.83);border-radius:22px;padding:21px 25px 24px 100px;min-height:152px;box-shadow:0 7px 24px rgba(151,111,122,.06);border:1px solid #f4e0db;overflow:hidden}
-.daily .fortune-block:before{content:'';position:absolute;top:0;bottom:0;left:0;width:77px;background:var(--tile)}
+.daily .fortune-block{position:relative;background:rgba(255,255,255,.83);border-radius:22px;padding:14px;box-shadow:0 7px 24px rgba(151,111,122,.06);border:1px solid #f4e0db;overflow:hidden}
 .daily .fortune-block.tarot{--tile:#eee1f6;border-color:#e8d7ed}.daily .fortune-block.ling{--tile:#fbe3df;border-color:#f3d5d0}.daily .fortune-block.gua{--tile:#e8f2e9;border-color:#dceada}
-.daily .fortune-icon{position:absolute;left:13px;top:31px;border:2px solid rgba(115,93,116,.2);height:50px;width:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif CJK SC',serif;color:#a46d91;font-size:30px}
+.daily .fortune-icon{margin-bottom:8px;border:2px solid rgba(115,93,116,.2);height:36px;width:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif CJK SC',serif;color:#a46d91;font-size:21px}
 .daily .fortune-block.ling .fortune-icon{color:#bf7e77}.daily .fortune-block.gua .fortune-icon{color:#72947b}
 .daily .fortune-title{font-size:22px;color:#845765;letter-spacing:1px;font-weight:700}
-.daily .fortune-title small{margin-left:10px;color:#b9a2ad;font-size:11px;letter-spacing:2px;font-weight:400}
 .daily .fortune-result{font-size:18px;color:#68535f;margin:7px 0}
 .daily .fortune-result em{font-size:13px;color:#a48085;font-style:normal;margin-left:8px}
 .daily .fortune-block p{line-height:1.7;font-size:16px;margin:0;color:#6f5b5b}
@@ -37,3 +33,13 @@
 .daily .lucky-row span{flex:1}
 .daily .lucky-row b{font-size:12px;color:#c29192;margin-right:9px;font-weight:500;letter-spacing:1px}
 .daily .lucky-row i{color:#cf9591;font-family:'Times New Roman',serif;letter-spacing:2px;font-style:normal}
+
+.daily .daily-help-nudge{margin:14px 0;text-align:center;padding:10px 14px;background:#fff8ee;border:1px solid #d9a780;border-radius:22px;color:#813a55;font-size:16px;font-weight:700}
+.daily .daily-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}
+.daily .fortune-title small{display:none}
+.daily .daily-help{margin-top:22px;padding:12px 18px 17px;border:1px solid #d9a780;border-radius:20px;background:rgba(255,248,238,.93)}
+.daily .daily-help h2{text-align:center;color:#813a55;font-size:22px;margin:0 0 12px}
+.daily .daily-help ul{display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,auto);grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 16px;list-style:none;margin:0;padding:0}
+.daily .daily-help li{border-top:1px solid #ecd3c3;padding:6px 0 0;line-height:1.4}
+.daily .daily-help li b{display:block;color:#813a55;font-size:14px}
+.daily .daily-help li span{display:block;font-size:13px}

@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 from typing import Any
 
-from .daily import lucky_details
+from .daily import HELP_COMMANDS, HELP_NUDGE, lucky_details
 
 ROOT = Path(__file__).resolve().parent.parent
 CARD_KINDS = {"zhouyi", "lingqian", "tarot", "qimen", "daily"}
@@ -324,13 +324,19 @@ def daily_body(lines: list[str], ai: str, data: dict, sender: str) -> str:
         '<article class="fortune-block gua"><div class="fortune-icon">☰</div><div class="fortune-title">周易卦象 <small>I CHING</small></div>'
         f'<div class="fortune-result">{e(cast.name)}卦 <em>{e(cast.upper)}上 · {e(cast.lower)}下</em></div><p>{e(cast.jie)}{e(move)}</p></article>'
     )
+    help_entries = ''.join(
+        f'<li><b>{e(command)}</b><span>{e(description)}</span></li>'
+        for command, description in HELP_COMMANDS
+    )
     return (f'<div class="daily-date"><span class="day">{today:%m}.{today:%d}</span><span class="weekday">星期{weekday} · {today:%Y}</span></div>'
-            '<div class="daily-salute">把今天过成温柔的礼物</div>'
+            f'<div class="daily-help-nudge">{e(HELP_NUDGE)}</div>'
             + (f'<div class="daily-user">致 · {e(sender or field(lines, "求运人："))}</div>' if sender or field(lines,'求运人：') else '')
             + '<div class="daily-trio">' + blocks + '</div>'
             + lucky_html
             + '<div class="today-note"><div class="today-label">✦ 今日寄语</div><div>' + e(advice or '顺其自然，过好当下。') + '</div></div>'
             + ai_block(ai,'AI 今日解读')
+            + '<section class="daily-help"><h2>赛博占卜 · 使用说明</h2>'
+            + f'<ul>{help_entries}</ul></section>'
             + '<p class="safety">每日结果当天固定 · 仅供娱乐参考</p>')
 
 
