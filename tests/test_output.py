@@ -562,3 +562,34 @@ def test_daily_reading_freezes_first_result_and_survives_reload():
         assert plugin.put_kv_data.await_count == 2
 
     asyncio.run(verify())
+
+
+def test_birth_commands_use_profile_and_treat_one_argument_as_question():
+    async def verify():
+        plugin = load_plugin()(None, {})
+        event = SimpleNamespace()
+        today = date(2026, 11, 9)
+        profile = AsyncMock(return_value=(date(2000, 8, 16), "女"))
+        plugin._daily_birth_profile = profile
+
+        assert await plugin._birth_command_args(event, "bazi", "", today) == "2000-08-16 12:00"
+        assert await plugin._birth_command_args(event, "ziwei", "事业如何？", today) == (
+            "2000-08-16 12:00 女 事业如何？"
+        )
+        assert await plugin._birth_command_args(event, "ziwei", "1990-05-20", today) == (
+            "2000-08-16 12:00 女 1990-05-20"
+        )
+        assert await plugin._birth_command_args(event, "ziwei", "1990-05-20 08:30", today) == (
+            "1990-05-20 08:30 女"
+        )
+        profile.reset_mock()
+        assert await plugin._birth_command_args(event, "ziwei", "1990-05-20 男 事业如何？", today) == (
+            "1990-05-20 12:00 男 事业如何？"
+        )
+        profile.assert_not_awaited()
+        profile.return_value = (None, "")
+        assert await plugin._birth_command_args(event, "ziwei", "08:30 近期如何？", today) == (
+            "2026-11-09 08:30 男 近期如何？"
+        )
+
+    asyncio.run(verify())

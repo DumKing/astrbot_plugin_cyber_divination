@@ -16,8 +16,8 @@ METHODS = {
     "lenormand": ("雷诺曼", ("雷诺曼",), "雷诺曼 [单张|三张] [问题]", "法式植物版画、墨绿与暖金"),
     "daliuren": ("大六壬", ("大六壬",), "大六壬 [时间] [问题]", "古铜天地盘、墨蓝与四课三传"),
     "taiyi": ("太乙神数", ("太乙神数", "太乙"), "太乙 [年计|日计|时计] [时间] [问题]", "靛蓝天文星图与金色星轨"),
-    "bazi": ("八字排盘", ("八字排盘", "八字"), "八字 YYYY-MM-DD HH:MM [问题]", "暖白宣纸、四柱与五行色标"),
-    "ziwei": ("紫微斗数", ("紫微斗数", "紫微"), "紫微 YYYY-MM-DD HH:MM 男|女 [问题]", "紫金星图与十二宫格"),
+    "bazi": ("八字排盘", ("八字排盘", "八字"), "八字 [YYYY-MM-DD] [HH:MM] [问题]", "暖白宣纸、四柱与五行色标"),
+    "ziwei": ("紫微斗数", ("紫微斗数", "紫微"), "紫微 [YYYY-MM-DD] [HH:MM] [男|女] [问题]", "紫金星图与十二宫格"),
 }
 
 _BRANCHES = "子丑寅卯辰巳午未申酉戌亥"
@@ -215,8 +215,6 @@ def bazi(text: str, now: datetime) -> Reading:
     parts = text.split(maxsplit=2)
     moment, _ = _birth(" ".join(parts[:2]))
     question = parts[2].strip() if len(parts) == 3 else ""
-    if question in {"男", "女"}:
-        raise ValueError("八字四柱排盘只需公历日期与时间。")
     chart = _lunar(moment).getEightChar()
     rows = [
         ("年柱", f"{chart.getYear()} · {chart.getYearWuXing()} · {chart.getYearShiShenGan()}"),

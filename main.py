@@ -779,12 +779,42 @@ class CyberDivination(Star):
         ):
             yield result
 
+    async def _birth_command_args(self, event: AstrMessageEvent, kind: str, text: str, today: date) -> str:
+        tokens = list(re.finditer(r"\S+", text))
+        birthday = time_text = gender = ""
+        end = 0
+        if len(tokens) > 1:
+            for token in tokens[:3]:
+                value = token.group()
+                if not birthday and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                    birthday = value
+                elif not time_text and re.fullmatch(r"\d{2}:\d{2}", value):
+                    time_text = value
+                elif not gender and value in {"男", "女"}:
+                    gender = value
+                else:
+                    break
+                end = token.end()
+        question = text[end:].strip()
+        if not birthday or (kind == "ziwei" and not gender):
+            profile_date, profile_gender = await self._daily_birth_profile(event)
+            birthday = birthday or (profile_date or today).isoformat()
+            gender = gender or profile_gender
+        args = [birthday, time_text or "12:00"]
+        if kind == "ziwei":
+            args.append(gender or "男")
+        if question:
+            args.append(question)
+        return " ".join(args)
+
     async def _run_extended(self, event: AstrMessageEvent, kind: str):
         title, _, usage, _ = extended.METHODS[kind]
         try:
-            reading = await asyncio.to_thread(
-                extended.BUILDERS[kind], self._remainder(event), datetime.now(),
-            )
+            now = datetime.now()
+            text = self._remainder(event)
+            if kind in {"bazi", "ziwei"}:
+                text = await self._birth_command_args(event, kind, text, now.date())
+            reading = await asyncio.to_thread(extended.BUILDERS[kind], text, now)
         except ValueError as exc:
             yield self._address_result(event, event.plain_result(f"{exc}\n用法：/占卜 {usage}"))
             return
