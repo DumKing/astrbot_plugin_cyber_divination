@@ -483,7 +483,7 @@ def test_daily_ai_notes_keep_original_rows_and_skip_unmatched_notes():
     assert asyncio.run(plugin._daily_panel_notes(SimpleNamespace(), original)) == original
 
 
-def test_daily_forward_sends_one_folded_message_after_image():
+def test_daily_forward_sends_one_folded_message_before_returning_image():
     async def verify():
         plugin = load_plugin()(None, {"use_image": True, "daily_forward_enabled": True})
         plugin.html_render = AsyncMock(return_value="rendered.png")
@@ -501,9 +501,8 @@ def test_daily_forward_sends_one_folded_message_after_image():
         data = {"daily": draw_daily(date.today(), "123"), "uid": "123"}
         output = plugin._finish(event, "每日运势", body, card_data=data)
         assert await anext(output) == ("image", "rendered.png")
-        event.send.assert_not_awaited()
-        assert [result async for result in output] == []
         event.send.assert_awaited_once()
+        await output.aclose()
         [(kind, nodes)] = event.send.await_args.args[0]
         assert kind == "forward"
         assert [node.content for node in nodes] == [

@@ -322,9 +322,9 @@ class CyberDivination(Star):
                 component = (
                     Image.fromFileSystem(str(image)) if isinstance(image, Path) else Image.fromBytes(image)
                 )
-                yield event.chain_result([component])
                 if forward_daily:
                     await self._send_daily_forward(event, body)
+                yield event.chain_result([component])
                 return
             except AIImageRestricted as exc:
                 logger.info(f"cyber_divination {exc}，回退 HTML")
@@ -354,9 +354,9 @@ class CyberDivination(Star):
             )
             if not url:
                 raise ValueError("HTML 渲染未返回图片")
-            yield event.image_result(url)
             if forward_daily:
                 await self._send_daily_forward(event, body)
+            yield event.image_result(url)
             return
         except Exception as exc:
             logger.warning(f"cyber_divination HTML 渲染失败: {type(exc).__name__}")
