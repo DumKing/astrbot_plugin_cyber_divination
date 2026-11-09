@@ -251,3 +251,28 @@ def test_prefix_question_reaches_ai_image_only_when_enabled():
         assert plugin._generate_ai_card.await_args.args[1] == {"question": "今日财运"}
 
     asyncio.run(verify())
+
+
+def test_clearing_history_evicts_only_the_senders_daily_image():
+    plugin = load_plugin()(None, {})
+    plugin.put_kv_data = AsyncMock()
+    plugin._generate_ai_card = AsyncMock(return_value=b"fresh")
+    day = date.today()
+    plugin._daily_images.update({(day, "alice"): b"old", (day, "bob"): b"other"})
+    event = SimpleNamespace(
+        get_extra=lambda key: None,
+        get_message_str=lambda: "/占卜 历史 清除",
+        unified_msg_origin="group",
+        get_sender_id=lambda: "alice",
+        plain_result=lambda text: text,
+    )
+
+    async def verify():
+        result = [item async for item in plugin.history_cmd(event)]
+        assert result == ["占卜历史和你的今日运势图片缓存已清除。"]
+        plugin.put_kv_data.assert_awaited_once_with("history_group", [])
+        assert dict(plugin._daily_images) == {(day, "bob"): b"other"}
+        assert await plugin._get_ai_image(event, "每日运势", {"daily": {"date": day}}, None) == b"fresh"
+        plugin._generate_ai_card.assert_awaited_once()
+
+    asyncio.run(verify())

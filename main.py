@@ -547,7 +547,14 @@ class CyberDivination(Star):
         if remainder.strip() in {"清除", "clear"}:
             try:
                 await self.put_kv_data(key, [])
-                yield event.plain_result("占卜历史已清除。")
+                if sender_id := self._sender_id(event):
+                    image_key = (date.today(), sender_id)
+                    lock = self._daily_image_locks.setdefault(image_key, asyncio.Lock())
+                    async with lock:
+                        self._daily_images.pop(image_key, None)
+                    yield event.plain_result("占卜历史和你的今日运势图片缓存已清除。")
+                else:
+                    yield event.plain_result("占卜历史已清除。")
             except Exception:
                 yield event.plain_result("历史清除失败，请稍后再试～")
             return
