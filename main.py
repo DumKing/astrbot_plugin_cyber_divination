@@ -492,7 +492,7 @@ class CyberDivination(Star):
 
     @filter.command_group("divine", alias={"占卜", "zhanbu"})
     def divine():
-        """赛博占卜：/占卜 六爻|灵签|塔罗|奇门|每日|历史|帮助"""
+        """赛博占卜。支持六爻、灵签、塔罗、奇门、每日运势及七种扩展排盘，可查牌和管理历史。发送 /占卜 帮助 查看完整用法。"""
 
     @divine.command("help", alias={"帮助", "菜单"})
     async def help_cmd(self, event: AstrMessageEvent):
