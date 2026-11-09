@@ -5,16 +5,17 @@ import asyncio
 import json
 import re
 import time
-from collections import OrderedDict
 from dataclasses import asdict
 from datetime import date, datetime, time as clock_time
+from hashlib import sha256
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from weakref import WeakValueDictionary
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, MessageChain, filter
 from astrbot.api.message_components import At, Image, Node, Nodes, Plain, Reply
-from astrbot.api.star import Context, Star
+from astrbot.api.star import Context, Star, StarTools
 
 from .core import daily, extended, lingqian, qimen, tarot, zhouyi
 from .core.keywords import match_keyword
@@ -38,8 +39,7 @@ _ACK_TIMEOUT_SECONDS = 2
 _ACK_TEXT = "收到收到，正在为你生成{title}卡片，请稍等～"
 DailyImageKey = tuple[date, str]
 
-_DAILY_CACHE_MAX_IMAGES = 64
-_DAILY_CACHE_MAX_BYTES = 32 * 1024 * 1024
+_DAILY_CACHE_FILENAME = re.compile(r"(\d{4}-\d{2}-\d{2})-[0-9a-f]{64}\.(?:png|jpg|webp)")
 _MAX_QUESTION = 120
 _LLM_FAIL_COOLDOWN = 60
 _KEYWORD_REMAINDER = "cyber_divination_keyword_remainder"
@@ -84,7 +84,7 @@ class CyberDivination(Star):
         super().__init__(context)
         self.config = config
         self._image_quota_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
-        self._daily_images: OrderedDict[DailyImageKey, bytes] = OrderedDict()
+        self._daily_image_cleanup_day: date | None = None
         self._daily_image_locks: WeakValueDictionary[tuple[date, str], asyncio.Lock] = (
             WeakValueDictionary()
         )
@@ -293,9 +293,12 @@ class CyberDivination(Star):
         forward_daily = bool(data.get("daily")) and self._cfg("daily_forward_enabled", False)
         ai_mode = self._cfg("image_mode", "html") == "ai"
         cache_key = self._daily_image_key(event, data) if use_image and ai_mode else None
-        cached = cache_key is not None and cache_key in self._daily_images and (
-            self._ai_image_policy(event) != "blocked"
-        )
+        cached = False
+        if cache_key is not None and self._ai_image_policy(event) != "blocked":
+            try:
+                cached = self._cached_daily_image(cache_key) is not None
+            except OSError as exc:
+                logger.warning(f"cyber_divination 检查运势图片缓存失败: {type(exc).__name__}")
         if use_image and not cached and not data.get("image_acknowledged"):
             await self._acknowledge_image(event, title)
         if panels := data.get("daily_panels"):
@@ -316,7 +319,10 @@ class CyberDivination(Star):
                 if question and self._cfg("ai_image_include_question", False):
                     data = {**data, "question": question}
                 image = await self._get_ai_image(event, title, data, zhouyi_cast)
-                yield event.chain_result([Image.fromBytes(image)])
+                component = (
+                    Image.fromFileSystem(str(image)) if isinstance(image, Path) else Image.fromBytes(image)
+                )
+                yield event.chain_result([component])
                 if forward_daily:
                     await self._send_daily_forward(event, body)
                 return
@@ -367,6 +373,50 @@ class CyberDivination(Star):
                 return draw["date"], uid
         return None
 
+    def _daily_cache_dir(self) -> Path:
+        shared = str(self._cfg("daily_image_cache_dir", "") or "").strip()
+        if shared:
+            return Path(shared).expanduser().resolve() / "cyber-divination-daily"
+        return Path(StarTools.get_data_dir("astrbot_plugin_cyber_divination_cards")) / "daily-images"
+
+    def _daily_cache_stem(self, key: DailyImageKey) -> Path:
+        day, uid = key
+        return self._daily_cache_dir() / f"{day.isoformat()}-{sha256(uid.encode()).hexdigest()}"
+
+    def _cached_daily_image(self, key: DailyImageKey) -> Path | None:
+        stem = self._daily_cache_stem(key)
+        for ext in (".png", ".jpg", ".webp"):
+            path = stem.with_suffix(ext)
+            if path.is_file():
+                return path
+        return None
+
+    def _clean_daily_images(self, today: date) -> None:
+        directory = self._daily_cache_dir()
+        if not directory.is_dir():
+            return
+        for path in directory.iterdir():
+            match = _DAILY_CACHE_FILENAME.fullmatch(path.name)
+            if match and match[1] < today.isoformat() and path.is_file():
+                path.unlink(missing_ok=True)
+
+    def _store_daily_image(self, key: DailyImageKey, image: bytes) -> Path:
+        stem = self._daily_cache_stem(key)
+        suffix = ".jpg" if image.startswith(b"\xff\xd8") else ".png"
+        if image[:4] == b"RIFF" and image[8:12] == b"WEBP":
+            suffix = ".webp"
+        path = stem.with_suffix(suffix)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with NamedTemporaryFile(dir=path.parent, delete=False) as temp:
+            temp_path = Path(temp.name)
+            try:
+                temp.write(image)
+                temp.close()
+                temp_path.replace(path)
+            finally:
+                temp_path.unlink(missing_ok=True)
+        return path
+
     def _ai_image_policy(self, event: AstrMessageEvent) -> str:
         if not self._cfg("ai_image_daily_limit_enabled", False):
             return "unlimited"
@@ -395,7 +445,7 @@ class CyberDivination(Star):
                 raise AIImageRestricted("达到每日 AI 生图上限")
             await self.put_kv_data(key, {"date": today, "count": count + 1})
 
-    async def _get_ai_image(self, event: AstrMessageEvent, title: str, data: dict, cast) -> bytes:
+    async def _get_ai_image(self, event: AstrMessageEvent, title: str, data: dict, cast) -> bytes | Path:
         policy = self._ai_image_policy(event)
         if policy == "blocked":
             raise AIImageRestricted("命中 AI 生图黑名单")
@@ -405,25 +455,26 @@ class CyberDivination(Star):
                 await self._reserve_image_quota(event)
             return await self._generate_ai_card(title, data, cast)
 
-        lock = self._daily_image_locks.setdefault((key[0], key[1]), asyncio.Lock())
+        lock = self._daily_image_locks.setdefault(key, asyncio.Lock())
         async with lock:
-            cached = self._daily_images.get(key)
-            if cached is not None:
-                self._daily_images.move_to_end(key)
+            day = key[0]
+            if self._daily_image_cleanup_day != day:
+                try:
+                    await asyncio.to_thread(self._clean_daily_images, day)
+                    self._daily_image_cleanup_day = day
+                except OSError as exc:
+                    logger.warning(f"cyber_divination 清理过期运势图片失败: {type(exc).__name__}")
+            if cached := self._cached_daily_image(key):
                 return cached
 
             if policy == "limited":
                 await self._reserve_image_quota(event)
             image = await self._generate_ai_card(title, data, cast)
-            self._daily_images[key] = image
-            total = sum(len(card) for card in self._daily_images.values())
-            while (
-                len(self._daily_images) > _DAILY_CACHE_MAX_IMAGES
-                or total > _DAILY_CACHE_MAX_BYTES
-            ):
-                _, evicted = self._daily_images.popitem(last=False)
-                total -= len(evicted)
-            return image
+            try:
+                return await asyncio.to_thread(self._store_daily_image, key, image)
+            except OSError as exc:
+                logger.warning(f"cyber_divination 保存运势图片失败: {type(exc).__name__}")
+                return image
 
     async def _generate_ai_card(self, title: str, card_data: dict, cast) -> bytes:
         from .core.image_api import build_prompt, generate_image
@@ -806,7 +857,8 @@ class CyberDivination(Star):
                 image_key = (date.today(), uid)
                 lock = self._daily_image_locks.setdefault(image_key, asyncio.Lock())
                 async with lock:
-                    self._daily_images.pop(image_key, None)
+                    if cached := self._cached_daily_image(image_key):
+                        cached.unlink(missing_ok=True)
                 yield event.plain_result("占卜历史和你的今日运势图片缓存已清除。")
             except Exception:
                 yield event.plain_result("历史清除失败，请稍后再试～")

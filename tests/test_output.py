@@ -4,6 +4,7 @@ import importlib.util
 import sys
 from datetime import date
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -40,9 +41,12 @@ def load_plugin():
                 event_message_type=lambda *a: lambda target: target,
             ),
         ),
-        "astrbot.api.star": SimpleNamespace(Context=object, Star=Star),
+        "astrbot.api.star": SimpleNamespace(Context=object, Star=Star, StarTools=SimpleNamespace()),
         "astrbot.api.message_components": SimpleNamespace(
-            Image=SimpleNamespace(fromBytes=lambda data: ("image", data)),
+            Image=SimpleNamespace(
+                fromBytes=lambda data: ("image", data),
+                fromFileSystem=lambda path: ("image_file", path),
+            ),
             Reply=lambda *, id: ("reply", id),
             Plain=lambda text: ("plain", text),
             Node=SimpleNamespace,
@@ -155,20 +159,27 @@ def test_daily_ai_image_cache_reuses_success_by_sender_and_date():
         return await plugin._get_ai_image(event, "每日运势", draw, None)
 
     async def verify():
-        assert await asyncio.gather(fetch(alice, today), fetch(alice, today)) == [b"first", b"first"]
+        first, duplicate = await asyncio.gather(fetch(alice, today), fetch(alice, today))
+        assert first == duplicate
+        assert first.read_bytes() == b"first"
+        reloaded = load_plugin()(None, plugin.config)
+        assert await reloaded._get_ai_image(alice, "每日运势", today, None) == first
         assert generate.await_count == 1
-        assert await fetch(bob, today) == b"second"
-        assert await fetch(alice, tomorrow) == b"tomorrow"
+        assert (await fetch(bob, today)).read_bytes() == b"second"
+        assert (await fetch(alice, tomorrow)).read_bytes() == b"tomorrow"
+        assert not first.exists()
         try:
             await fetch(alice, failure)
         except TimeoutError:
             pass
         else:
             raise AssertionError("expected generation to fail")
-        assert await fetch(alice, failure) == b"retry"
+        assert (await fetch(alice, failure)).read_bytes() == b"retry"
         assert generate.await_count == 5
 
-    asyncio.run(verify())
+    with TemporaryDirectory() as directory:
+        plugin.config["daily_image_cache_dir"] = directory
+        asyncio.run(verify())
 
 
 def test_image_acknowledgement_is_independent_and_precedes_generation():
@@ -206,8 +217,11 @@ def test_image_acknowledgement_is_independent_and_precedes_generation():
                 event, "每日运势", "占卜原文", card_data=card_data,
             )]
 
-        assert await collect() == [[("image", b"image")]]
-        assert await collect() == [[("image", b"image")]]
+        first = await collect()
+        [[(kind, path)]] = first
+        assert kind == "image_file"
+        assert Path(path).read_bytes() == b"image"
+        assert await collect() == first
         plugin.config["use_image"] = False
         assert await collect() == [("plain", "占卜原文")]
         plugin._generate_ai_card.assert_awaited_once()
@@ -220,7 +234,9 @@ def test_image_acknowledgement_is_independent_and_precedes_generation():
         reaction.assert_awaited_once()
         send.assert_awaited_once_with([("reply", "42"), ("plain", "收到，正在生成周易六爻")])
 
-    asyncio.run(verify())
+    with TemporaryDirectory() as directory:
+        plugin.config["daily_image_cache_dir"] = directory
+        asyncio.run(verify())
 
 
 def test_prefix_question_reaches_ai_image_only_when_enabled():
@@ -260,7 +276,6 @@ def test_clearing_history_evicts_only_the_senders_daily_image():
     plugin.put_kv_data = AsyncMock()
     plugin._generate_ai_card = AsyncMock(return_value=b"fresh")
     day = date.today()
-    plugin._daily_images.update({(day, "alice"): b"old", (day, "bob"): b"other"})
     event = SimpleNamespace(
         get_extra=lambda key: None,
         get_message_str=lambda: "/占卜 历史 清除",
@@ -270,14 +285,20 @@ def test_clearing_history_evicts_only_the_senders_daily_image():
     )
 
     async def verify():
+        alice = plugin._store_daily_image((day, "alice"), b"old")
+        bob = plugin._store_daily_image((day, "bob"), b"other")
         result = [item async for item in plugin.history_cmd(event)]
         assert result == ["占卜历史和你的今日运势图片缓存已清除。"]
         plugin.put_kv_data.assert_awaited_once_with("history_group", [])
-        assert dict(plugin._daily_images) == {(day, "bob"): b"other"}
-        assert await plugin._get_ai_image(event, "每日运势", {"daily": {"date": day}}, None) == b"fresh"
+        assert not alice.exists()
+        assert bob.read_bytes() == b"other"
+        fresh = await plugin._get_ai_image(event, "每日运势", {"daily": {"date": day}}, None)
+        assert fresh.read_bytes() == b"fresh"
         plugin._generate_ai_card.assert_awaited_once()
 
-    asyncio.run(verify())
+    with TemporaryDirectory() as directory:
+        plugin.config["daily_image_cache_dir"] = directory
+        asyncio.run(verify())
 
 
 def test_daily_image_quota_counts_per_sender_and_bypasses_whitelisted_umo():
@@ -319,8 +340,11 @@ def test_daily_image_quota_counts_per_sender_and_bypasses_whitelisted_umo():
         daily = {"daily": draw_daily(date.today(), "alice"), "uid": "alice"}
         ai = [[("image", b"ai")]]
         alice = event("alice", "regular")
-        assert await finish(alice, daily) == ai
-        assert await finish(alice, daily) == ai
+        first = await finish(alice, daily)
+        [[(kind, path)]] = first
+        assert kind == "image_file"
+        assert Path(path).read_bytes() == b"ai"
+        assert await finish(alice, daily) == first
         assert await finish(event("alice", "another"), {}) == ["html"]
         assert await finish(event("bob", "regular")) == ai
         assert await finish(event("alice", "vip")) == ai
@@ -343,7 +367,9 @@ def test_daily_image_quota_counts_per_sender_and_bypasses_whitelisted_umo():
         assert await finish(blocked) == ai
         assert records["ai_image_quota_user_alice"]["count"] == 1
 
-    asyncio.run(verify())
+    with TemporaryDirectory() as directory:
+        plugin.config["daily_image_cache_dir"] = directory
+        asyncio.run(verify())
 
 
 def test_new_commands_reach_the_shared_reply_and_history_flow():
