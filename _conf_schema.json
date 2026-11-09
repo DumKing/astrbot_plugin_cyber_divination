@@ -21,6 +21,12 @@
     "default": 10,
     "hint": "建议 1-50"
   },
+  "daily_forward_enabled": {
+    "description": "每日运势详情使用 QQ 合并转发",
+    "type": "bool",
+    "default": false,
+    "hint": "仅用于 QQ OneBot（如 NapCat）。开启后，图片照常发送，完整文字收在一条合并转发里。"
+  },
   "use_image": {
     "description": "启用占卜图片输出。关闭时直接发送原文。",
     "type": "bool",

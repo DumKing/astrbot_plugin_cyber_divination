@@ -6,14 +6,14 @@ import json
 import re
 import time
 from collections import OrderedDict
+from dataclasses import asdict
 from datetime import date, datetime, time as clock_time
-from hashlib import sha256
 from pathlib import Path
 from weakref import WeakValueDictionary
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, MessageChain, filter
-from astrbot.api.message_components import At, Image, Plain, Reply
+from astrbot.api.message_components import At, Image, Node, Nodes, Plain, Reply
 from astrbot.api.star import Context, Star
 
 from .core import daily, extended, lingqian, qimen, tarot, zhouyi
@@ -36,7 +36,7 @@ _SUB_WORDS.update(alias for method in extended.METHODS.values() for alias in met
 
 _ACK_TIMEOUT_SECONDS = 2
 _ACK_TEXT = "收到收到，正在为你生成{title}卡片，请稍等～"
-DailyImageKey = tuple[date, str] | tuple[date, str, str]
+DailyImageKey = tuple[date, str]
 
 _DAILY_CACHE_MAX_IMAGES = 64
 _DAILY_CACHE_MAX_BYTES = 32 * 1024 * 1024
@@ -258,6 +258,23 @@ class CyberDivination(Star):
             except asyncio.TimeoutError:
                 logger.debug("cyber_divination 出图确认超时")
 
+    async def _send_daily_forward(self, event: AstrMessageEvent, body: str) -> bool:
+        """Send the daily reading as one folded QQ message."""
+        if getattr(event, "get_platform_name", lambda: "")() != "aiocqhttp":
+            return False
+        try:
+            bot_id = str(event.get_self_id())
+            sections = re.split(r"\n\n(?=【)", body)
+            nodes = [
+                Node(name="今日运势详情", uin=bot_id, content=[Plain(section)])
+                for section in sections if section.strip()
+            ]
+            await event.send(MessageChain([Nodes(nodes)]))
+            return True
+        except Exception as exc:
+            logger.warning(f"cyber_divination 每日运势合并转发失败: {type(exc).__name__}")
+            return False
+
     async def _finish(
         self,
         event: AstrMessageEvent,
@@ -273,23 +290,25 @@ class CyberDivination(Star):
         """统一输出：先尝试 LLM 润色，再按配置输出精美卡片或文本。"""
         use_image = self._cfg("use_image", False)
         data = card_data or {}
+        forward_daily = bool(data.get("daily")) and self._cfg("daily_forward_enabled", False)
         ai_mode = self._cfg("image_mode", "html") == "ai"
         cache_key = self._daily_image_key(event, data) if use_image and ai_mode else None
         cached = cache_key is not None and cache_key in self._daily_images and (
             self._ai_image_policy(event) != "blocked"
         )
-        if use_image and not cached:
+        if use_image and not cached and not data.get("image_acknowledged"):
             await self._acknowledge_image(event, title)
         if panels := data.get("daily_panels"):
-            if not cached:
-                panels = await self._daily_panel_notes(event, panels)
-                data = {**data, "daily_panels": panels}
-                notes = [f"{panel['title']}：{panel['ai_note']}" for panel in panels if panel.get("ai_note")]
-                if notes:
-                    body += "\n\n【AI 简解】\n" + "\n".join(notes)
+            notes = [f"{panel['title']}：{panel['ai_note']}" for panel in panels if panel.get("ai_note")]
+            if notes:
+                body += "\n\n【AI 简解】\n" + "\n".join(notes)
         else:
             body = await self._maybe_llm(event, title, body)
         if not use_image:
+            if forward_daily:
+                if not await self._send_daily_forward(event, body):
+                    yield event.plain_result("今日运势详情暂时无法以合并转发发送。")
+                return
             yield event.plain_result(body)
             return
         if ai_mode:
@@ -298,6 +317,8 @@ class CyberDivination(Star):
                     data = {**data, "question": question}
                 image = await self._get_ai_image(event, title, data, zhouyi_cast)
                 yield event.chain_result([Image.fromBytes(image)])
+                if forward_daily:
+                    await self._send_daily_forward(event, body)
                 return
             except AIImageRestricted as exc:
                 logger.info(f"cyber_divination {exc}，回退 HTML")
@@ -328,18 +349,22 @@ class CyberDivination(Star):
             if not url:
                 raise ValueError("HTML 渲染未返回图片")
             yield event.image_result(url)
+            if forward_daily:
+                await self._send_daily_forward(event, body)
             return
         except Exception as exc:
-            logger.warning(f"cyber_divination HTML 渲染失败，回退纯文本: {type(exc).__name__}")
+            logger.warning(f"cyber_divination HTML 渲染失败: {type(exc).__name__}")
+        if forward_daily:
+            if not await self._send_daily_forward(event, body):
+                yield event.plain_result("今日运势图片和合并转发暂时无法发送。")
+            return
         yield event.plain_result(body)
 
     def _daily_image_key(self, event: AstrMessageEvent, data: dict) -> DailyImageKey | None:
-        if not data.get("personalized") and (draw := data.get("daily")) and (
-            sender_id := self._sender_id(event)
-        ):
-            if signature := data.get("birthday_cache_signature"):
-                return draw["date"], sender_id, signature
-            return draw["date"], sender_id
+        if draw := data.get("daily"):
+            uid = data.get("uid") or self._sender_id(event)
+            if uid:
+                return draw["date"], uid
         return None
 
     def _ai_image_policy(self, event: AstrMessageEvent) -> str:
@@ -645,26 +670,48 @@ class CyberDivination(Star):
         except Exception:
             return None, gender
 
-    @divine.command("daily", alias={"每日", "运势", "每日运势", "今日运势"})
-    async def daily_cmd(self, event: AstrMessageEvent):
-        """每日运势：/占卜 每日。当天结果固定，明日刷新"""
-        uid = self._sender_id(event) or event.unified_msg_origin
-        day = date.today()
-        birth = self._remainder(event)
-        birthday, gender = None, ""
-        hour_only = re.fullmatch(r"(\d{2}:\d{2})(?:\s+(男|女))?", birth)
-        if not birth or hour_only:
-            birthday, gender = await self._daily_birth_profile(event)
-        daily_data = daily.draw_daily(day, uid)
-        try:
+    async def _daily_reading(self, event: AstrMessageEvent, day: date, uid: str):
+        key = f"daily_reading_{uid}"
+        lock = self._daily_image_locks.setdefault((day, uid), asyncio.Lock())
+        async with lock:
+            record = await self.get_kv_data(key, {})
+            if record and record.get("date") == day.isoformat():
+                saved = record["reading"]
+                return {**saved, "date": day, "cast": zhouyi.ZhouyiCast(**saved["cast"])}, record["panels"], False
+
+            birth = self._remainder(event)
+            birthday, gender = None, ""
+            hour_only = re.fullmatch(r"(\d{2}:\d{2})(?:\s+(男|女))?", birth)
+            if not birth or hour_only:
+                birthday, gender = await self._daily_birth_profile(event)
             panels = await asyncio.to_thread(
                 extended.daily_panels, datetime.combine(day, clock_time(12)), uid, birth,
                 birthday=birthday, profile_gender=gender,
             )
+            acknowledged = self._cfg("use_image", False)
+            if acknowledged:
+                await self._acknowledge_image(event, "每日运势")
+            panels = await self._daily_panel_notes(event, panels)
+            reading = daily.draw_daily(day, uid)
+            saved = {name: reading[name] for name in ("card", "lingqian")}
+            saved["cast"] = asdict(reading["cast"])
+            await self.put_kv_data(key, {"date": day.isoformat(), "reading": saved, "panels": panels})
+            return reading, panels, acknowledged
+
+    @divine.command("daily", alias={"每日", "运势", "每日运势", "今日运势"})
+    async def daily_cmd(self, event: AstrMessageEvent):
+        """每日运势：/占卜 每日。当天结果固定，明日刷新"""
+        uid = self._sender_id(event) or event.unified_msg_origin
+        try:
+            daily_data, panels, acknowledged = await self._daily_reading(event, date.today(), uid)
         except ValueError as exc:
             yield self._address_result(event, event.plain_result(
                 f"{exc}\n示例：/占卜 每日 2000-08-16 12:00 女",
             ))
+            return
+        except Exception as exc:
+            logger.warning(f"cyber_divination 每日运势结果保存或读取失败: {type(exc).__name__}")
+            yield self._address_result(event, event.plain_result("今日运势暂时无法读取或保存，请稍后再试。"))
             return
         sender = self._sender(event)
         body = daily.format_daily(daily_data, uid_name=sender)
@@ -675,8 +722,8 @@ class CyberDivination(Star):
         async for result in self._run(
             event, "每日运势", "每日占卜合辑", body,
             sender=sender, card_data={
-                "daily": daily_data, "uid": uid, "daily_panels": panels, "personalized": bool(birth),
-                "birthday_cache_signature": sha256(f"{birthday or day}|{gender}".encode()).hexdigest() if birthday or gender else "",
+                "daily": daily_data, "uid": uid, "daily_panels": panels,
+                "image_acknowledged": acknowledged,
             },
         ):
             yield result
@@ -755,16 +802,12 @@ class CyberDivination(Star):
         if remainder.strip() in {"清除", "clear"}:
             try:
                 await self.put_kv_data(key, [])
-                if sender_id := self._sender_id(event):
-                    image_key = (date.today(), sender_id)
-                    lock = self._daily_image_locks.setdefault(image_key, asyncio.Lock())
-                    async with lock:
-                        for cached_key in list(self._daily_images):
-                            if cached_key[:2] == image_key:
-                                self._daily_images.pop(cached_key, None)
-                    yield event.plain_result("占卜历史和你的今日运势图片缓存已清除。")
-                else:
-                    yield event.plain_result("占卜历史已清除。")
+                uid = self._sender_id(event) or event.unified_msg_origin
+                image_key = (date.today(), uid)
+                lock = self._daily_image_locks.setdefault(image_key, asyncio.Lock())
+                async with lock:
+                    self._daily_images.pop(image_key, None)
+                yield event.plain_result("占卜历史和你的今日运势图片缓存已清除。")
             except Exception:
                 yield event.plain_result("历史清除失败，请稍后再试～")
             return

@@ -45,6 +45,8 @@ def load_plugin():
             Image=SimpleNamespace(fromBytes=lambda data: ("image", data)),
             Reply=lambda *, id: ("reply", id),
             Plain=lambda text: ("plain", text),
+            Node=SimpleNamespace,
+            Nodes=lambda nodes: ("forward", nodes),
             At=lambda *, qq: ("at", qq),
         ),
     }
@@ -453,3 +455,85 @@ def test_daily_ai_notes_keep_original_rows_and_skip_unmatched_notes():
     assert "赤口" in plugin._llm_text.await_args.args[2]
     plugin._llm_text.return_value = "无效响应"
     assert asyncio.run(plugin._daily_panel_notes(SimpleNamespace(), original)) == original
+
+
+def test_daily_forward_sends_one_folded_message_after_image():
+    async def verify():
+        plugin = load_plugin()(None, {"use_image": True, "daily_forward_enabled": True})
+        plugin.html_render = AsyncMock(return_value="rendered.png")
+        plugin._acknowledge_image = AsyncMock()
+        event = SimpleNamespace(
+            get_platform_name=lambda: "aiocqhttp",
+            get_self_id=lambda: "123",
+            send=AsyncMock(),
+            image_result=lambda url: ("image", url),
+            plain_result=lambda body: ("plain", body),
+        )
+        from core.daily import draw_daily
+
+        body = "今日运势\n\n【小六壬】\n时宫：小吉"
+        data = {"daily": draw_daily(date.today(), "123"), "uid": "123"}
+        output = plugin._finish(event, "每日运势", body, card_data=data)
+        assert await anext(output) == ("image", "rendered.png")
+        event.send.assert_not_awaited()
+        assert [result async for result in output] == []
+        event.send.assert_awaited_once()
+        [(kind, nodes)] = event.send.await_args.args[0]
+        assert kind == "forward"
+        assert [node.content for node in nodes] == [
+            [("plain", "今日运势")], [("plain", "【小六壬】\n时宫：小吉")],
+        ]
+
+        plugin.html_render.side_effect = RuntimeError
+        event.send.side_effect = RuntimeError
+        output = plugin._finish(event, "每日运势", body, card_data=data)
+        assert [result async for result in output] == [
+            ("plain", "今日运势图片和合并转发暂时无法发送。"),
+        ]
+
+    asyncio.run(verify())
+
+
+def test_daily_reading_freezes_first_result_and_survives_reload():
+    async def verify():
+        plugin_type = load_plugin()
+        plugin = plugin_type(None, {})
+        records = {}
+
+        async def save(key, value):
+            records[key] = value
+
+        event = SimpleNamespace()
+        plugin.get_kv_data = AsyncMock(side_effect=records.get)
+        plugin.put_kv_data = AsyncMock(side_effect=save)
+        plugin._remainder = Mock(side_effect=["2000-08-16 08:30 女", "2001-09-17 12:00 男"])
+        plugin._daily_panel_notes = AsyncMock(return_value=[
+            {"title": "八字排盘", "rows": [("日主", "丁")], "ai_note": "首次简解"},
+        ])
+        today = date(2026, 11, 9)
+        builder = Mock(return_value=[{"title": "八字排盘", "rows": [("日主", "丁")]}])
+        with patch.object(plugin_type._daily_reading.__globals__["extended"], "daily_panels", builder):
+            first, second = await asyncio.gather(
+                plugin._daily_reading(event, today, "alice"),
+                plugin._daily_reading(event, today, "alice"),
+            )
+        builder.assert_called_once()
+        assert builder.call_args.args[2] == "2000-08-16 08:30 女"
+        assert first == second
+        plugin._remainder.assert_called_once_with(event)
+        plugin.put_kv_data.assert_awaited_once()
+        plugin._daily_panel_notes.assert_awaited_once()
+        assert plugin._daily_image_key(event, {"daily": first[0], "uid": "alice"}) == (today, "alice")
+
+        reloaded = plugin_type(None, {})
+        reloaded.get_kv_data = AsyncMock(side_effect=records.get)
+        assert await reloaded._daily_reading(event, today, "alice") == first
+
+        tomorrow = date(2026, 11, 10)
+        with patch.object(plugin_type._daily_reading.__globals__["extended"], "daily_panels", builder):
+            reading, _, _ = await plugin._daily_reading(event, tomorrow, "alice")
+        assert reading["date"] == tomorrow
+        assert plugin._remainder.call_count == 2
+        assert plugin.put_kv_data.await_count == 2
+
+    asyncio.run(verify())
