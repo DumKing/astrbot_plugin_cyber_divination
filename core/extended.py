@@ -10,6 +10,24 @@ from datetime import date, datetime
 from . import qimen, zhouyi
 
 # Labels, aliases, usage and visual direction are shared by commands and renderers.
+# [memtrim] 紫微斗数依赖 iztro_py，单次导入约 +20MB，且 Python 不会自动卸载。
+# 用完即卸载，避免长期占着内存；下次再算会重新导入（多约 0.7 秒，可接受）。
+_HEAVY_PREFIXES = ("iztro_py",)
+
+
+def release_heavy() -> None:
+    """卸载重量级可选依赖，释放其占用的内存。"""
+    import gc
+    import sys
+
+    removed = False
+    for name in [n for n in list(sys.modules) if n.startswith(_HEAVY_PREFIXES)]:
+        sys.modules.pop(name, None)
+        removed = True
+    if removed:
+        gc.collect()
+
+
 METHODS = {
     "xiaoliuren": ("小六壬", ("小六壬",), "小六壬 [时间] [问题]", "朱砂、竹简与六宫掌诀"),
     "meihua": ("梅花易数", ("梅花易数", "梅花"), "梅花 [两个正整数或时间] [问题]", "水墨梅枝、月白与青金"),

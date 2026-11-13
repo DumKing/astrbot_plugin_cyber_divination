@@ -44,7 +44,7 @@ _MAX_QUESTION = 120
 _LLM_FAIL_COOLDOWN = 60
 _KEYWORD_REMAINDER = "cyber_divination_keyword_remainder"
 
-_HELP_IMAGE = Path(__file__).resolve().parent / "assets" / "help.png"
+_HELP_IMAGE = Path(__file__).resolve().parent / "assets" / "help.jpg"
 
 _HELP_TEXT = """🔮 赛博占卜使用说明
 
@@ -815,6 +815,8 @@ class CyberDivination(Star):
             if kind in {"bazi", "ziwei"}:
                 text = await self._birth_command_args(event, kind, text, now.date())
             reading = await asyncio.to_thread(extended.BUILDERS[kind], text, now)
+            # [memtrim] 算完立刻卸载紫微等重量依赖，防止 20MB 长期常驻
+            extended.release_heavy()
         except ValueError as exc:
             yield self._address_result(event, event.plain_result(f"{exc}\n用法：/占卜 {usage}"))
             return
